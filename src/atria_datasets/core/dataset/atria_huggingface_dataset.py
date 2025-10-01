@@ -37,6 +37,7 @@ from atria_core.logger import get_logger
 from atria_core.types import DocumentInstance, ImageInstance
 
 from atria_datasets.core.dataset.atria_dataset import AtriaDataset, AtriaDatasetConfig
+from atria_datasets.core.storage.utilities import FileStorageType
 from atria_datasets.core.typing.common import T_BaseDataInstance
 
 if TYPE_CHECKING:
@@ -126,43 +127,34 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
             }
             self._downloads_prepared = True
 
-    def _prepare_splits(
-        self,
-        data_dir: str,
-        split: DatasetSplitType | None = None,
-        access_token: str | None = None,
-    ) -> None:
+    def _prepare_splits(self, access_token: str | None = None) -> None:
         """Prepare splits without caching (direct iteration)."""
-        from atria_datasets.core.dataset.split_iterator import SplitIterator
+        from atria_datasets.core.dataset.split_iterator import HFSplitIterator
 
-        self._dataset_builder = self._prepare_dataset_builder(data_dir)
-        self.prepare_downloads(data_dir=str(data_dir), access_token=access_token)
+        self._dataset_builder = self._prepare_dataset_builder(self._data_dir)
+        self.prepare_downloads(data_dir=self._data_dir, access_token=access_token)
         for split in self._available_splits():
-            self._split_iterators[split] = SplitIterator(
+            self._split_iterators[split] = HFSplitIterator(
                 split=split,
                 data_model=self.data_model,
                 input_transform=self._input_transform,
-                base_iterator=self._split_iterator(split, data_dir),
+                base_iterator=self._split_iterator(split, self._data_dir),
                 max_len=self.get_max_split_samples(split),
             )
 
     def _prepare_cached_splits(
-        self, access_token: str | None = None, overwrite_existing: bool = False
+        self,
+        access_token: str | None = None,
+        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+        overwrite_existing: bool = False,
     ) -> None:
         """Prepare cached splits using DeltaLake storage."""
 
         from atria_core.types import DatasetSplitType
 
-        from atria_datasets.core.dataset.split_iterator import SplitIterator
-        from atria_datasets.core.storage.deltalake_storage_manager import (
-            DeltalakeStorageManager,
-        )
+        from atria_datasets.core.dataset.split_iterator import HFSplitIterator
 
-        storage_manager = DeltalakeStorageManager(
-            storage_dir=str(self._storage_dir),
-            config_name=self.config.config_name,
-            num_processes=self._num_processes,
-        )
+        storage_manager = self._get_storage_manager(cached_storage_type)
 
         info_saved = False
         for split in list(DatasetSplitType):
@@ -182,7 +174,7 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
                 if not info_saved:
                     self.save_dataset_info(self._storage_dir)
                 storage_manager.write_split(
-                    split_iterator=SplitIterator(
+                    split_iterator=HFSplitIterator(
                         split=split,
                         data_model=self.data_model,
                         input_transform=self._input_transform,

@@ -49,12 +49,12 @@ class MsgpackShardListDataset(Sequence[Any]):
     calculations for handling multiple shards.
 
     Attributes:
-        _shard_file_readers (list[MsgpackFileReader]): A list of Msgpack file readers for each shard.
+        _shard_files (list[str]): A list of Msgpack file path for each shard.
         _cumulative_sizes (list[int]): Cumulative sizes of the shards for efficient indexing.
         _total_size (int): The total number of samples across all shards.
     """
 
-    def __init__(self, shard_files: list[DatasetShardInfo]) -> None:
+    def __init__(self, shard_files: list[str]) -> None:
         """
         Initializes the `MsgpackShardListDataset`.
 
@@ -62,7 +62,7 @@ class MsgpackShardListDataset(Sequence[Any]):
             shard_files (List[DatasetShardInfo]): A list of shard metadata containing file URLs.
         """
         self._shard_files = shard_files
-        self._shard_file_readers = [MsgpackFileReader(f.url) for f in shard_files]
+        self._shard_file_readers = [MsgpackFileReader(f) for f in shard_files]
         self._total_size: int = 0
 
         cumulative_sizes: list[int] = []

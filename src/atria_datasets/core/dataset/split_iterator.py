@@ -235,3 +235,29 @@ class SplitIterator(Sequence[T_BaseDataInstance], RepresentationMixin):
             yield "num_rows", len(self)
         except Exception:
             yield "num_rows", "unknown"
+
+
+class HFSplitIterator(SplitIterator):
+    def __init__(
+        self,
+        split: DatasetSplitType,
+        base_iterator: Sequence | Generator,
+        data_model: type[T_BaseDataInstance],
+        input_transform: Callable | None = None,
+        output_transform: Callable | None = None,
+        max_len: int | None = None,
+        subset_indices: list[int] | None = None,
+    ):
+        self._split = split
+        self._base_iterator = base_iterator
+        self._max_len = max_len
+        self._subset_indices = subset_indices
+        self._tf = InstanceTransform(
+            input_transform=input_transform,
+            data_model=data_model,
+            output_transform=output_transform,
+        )
+        self._tf_enabled = True
+        self._is_iterable = isinstance(self._base_iterator, Iterable)
+        self._supports_indexing = False
+        self._supports_multi_indexing = False

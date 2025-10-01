@@ -46,7 +46,7 @@ from atria_core.types import (
 
 from atria_datasets.core.dataset.atria_dataset import SplitIterator
 from atria_datasets.core.storage.deltalake_reader import DeltalakeReader
-from atria_datasets.core.storage.shard_writer_actor import ShardWriterActor
+from atria_datasets.core.storage.fixed_shard_writer_actor import ShardWriterActor
 from atria_datasets.core.storage.utilities import (
     _RAY_RUNTIME_ENV,
     FileStorageType,

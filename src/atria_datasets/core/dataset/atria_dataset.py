@@ -31,7 +31,7 @@ from abc import abstractmethod
 from collections.abc import Callable, Generator, Sequence
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, Self
+from typing import Any, Generic, Self
 
 from atria_core.logger import get_logger
 from atria_core.types import (
@@ -42,14 +42,12 @@ from atria_core.types import (
     ImageInstance,
 )
 from atria_core.utilities.repr import RepresentationMixin
+from pydantic import BaseModel, ConfigDict
+
 from atria_datasets.core.constants import _DEFAULT_DOWNLOAD_PATH
 from atria_datasets.core.dataset.split_iterator import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_datasets.core.typing.common import T_BaseDataInstance
-from pydantic import BaseModel, ConfigDict
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -299,15 +297,14 @@ class AtriaDataset(
         data_dir: str | None = None,
         provider: str | None = None,
         preprocess_transform: Callable | None = None,
-        shard_storage_type: FileStorageType | None = None,
         access_token: str | None = None,
         dataset_load_mode: DatasetLoadingMode = DatasetLoadingMode.local_streaming,
         overwrite_existing_cached: bool = False,
-        overwrite_existing_shards: bool = False,
         allowed_keys: set[str] | None = None,
         num_processes: int = 8,
+        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+        enable_cached_splits: bool = True,
         build_kwargs: dict[str, Any] | None = None,
-        sharded_storage_kwargs: dict[str, Any] | None = None,
     ) -> Self:  # noqa: F821
         """
         Load a dataset from the Atria registry.
@@ -317,13 +314,10 @@ class AtriaDataset(
             data_dir: Custom data directory path
             provider: Registry provider name
             preprocess_transform: Transform function applied during preprocessing
-            shard_storage_type: Type of sharded storage to use
             access_token: Authentication token for private datasets
             overwrite_existing_cached: Whether to overwrite cached data
-            overwrite_existing_shards: Whether to overwrite existing shards
             allowed_keys: Set of allowed keys to filter data
             build_kwargs: Additional arguments for dataset construction
-            sharded_storage_kwargs: Arguments for sharded storage configuration
 
         Returns:
             Loaded and configured dataset instance
@@ -345,14 +339,13 @@ class AtriaDataset(
         dataset.build(
             data_dir=data_dir,
             preprocess_transform=preprocess_transform,
-            shard_storage_type=shard_storage_type,
             access_token=access_token,
             overwrite_existing_cached=overwrite_existing_cached,
-            overwrite_existing_shards=overwrite_existing_shards,
             dataset_load_mode=dataset_load_mode,
             allowed_keys=allowed_keys,
             num_processes=num_processes,
-            **(sharded_storage_kwargs or {}),
+            cached_storage_type=cached_storage_type,
+            enable_cached_splits=enable_cached_splits,
         )
         return dataset
 
@@ -365,11 +358,10 @@ class AtriaDataset(
         access_token: str | None = None,
         dataset_load_mode: DatasetLoadingMode = DatasetLoadingMode.local_streaming,
         overwrite_existing_cached: bool = False,
-        overwrite_existing_shards: bool = False,
         allowed_keys: set[str] | None = None,
         num_processes: int = 8,
+        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
         enable_cached_splits: bool = True,
-        **sharded_storage_kwargs,
     ) -> None:
         """
         Build and prepare a dataset split for use.
@@ -387,10 +379,8 @@ class AtriaDataset(
             preprocess_transform: Transform function applied during preprocessing
             access_token: Authentication token for private datasets
             overwrite_existing_cached: Whether to overwrite existing cached data
-            overwrite_existing_shards: Whether to overwrite existing shards
             allowed_keys: Filter to include only specified keys
             enable_cached_splits: Whether to use cached storage (DeltaLake)
-            **sharded_storage_kwargs: Additional arguments for sharded storage
         """
         from atria_core.constants import _DEFAULT_ATRIA_DATASETS_CACHE_DIR
 
@@ -410,20 +400,14 @@ class AtriaDataset(
 
         # Prepare splits based on caching preference
         if enable_cached_splits:
-            self._prepare_cached_splits(access_token=access_token)
+            self._prepare_cached_splits(
+                access_token=access_token,
+                cached_storage_type=cached_storage_type,
+                preprocess_transform=preprocess_transform,
+            )
         else:
             # first prepare uncached splits
             self._prepare_splits(access_token=access_token)
-
-        # Setup sharded storage if requested
-        shard_storage_type = sharded_storage_kwargs.get("shard_storage_type", None)
-        if shard_storage_type is not None:
-            self._prepare_sharded_splits(
-                shard_storage_type=shard_storage_type,
-                preprocess_transform=preprocess_transform,
-                overwrite_existing=overwrite_existing_shards,
-                **sharded_storage_kwargs,
-            )
 
         # Apply runtime transformations
         if runtime_transforms is not None:
@@ -651,57 +635,38 @@ class AtriaDataset(
 
         return str(data_dir)
 
-    def _prepare_sharded_splits(
-        self,
-        storage_dir: str,
-        shard_storage_type: FileStorageType,
-        preprocess_transform: Callable | None = None,
-        overwrite_existing: bool = False,
-        allowed_keys: set[str] | None = None,
-        num_processes: int = 8,
-        **kwargs,
-    ) -> None:
-        """Prepare sharded storage for dataset splits."""
-        if self._sharded_splits_prepared:
-            return
-
-        from atria_datasets.core.storage.sharded_dataset_storage_manager import (
-            ShardedDatasetStorageManager,
-        )
-
-        storage_manager = ShardedDatasetStorageManager(
-            storage_dir=str(storage_dir),
-            storage_type=shard_storage_type,
-            num_processes=num_processes,
-            **kwargs,
-        )
-
-        for split, split_iterator in self._split_iterators.items():
-            split_exists = storage_manager.split_exists(split=split)
-
-            if split_exists and overwrite_existing:
-                logger.warning(f"Overwriting existing sharded split {split.value}")
-                storage_manager.purge_split(split)
-                split_exists = False
-
-            if not split_exists:
-                storage_manager.write_split(
-                    split_iterator=split_iterator,
-                    preprocess_transform=preprocess_transform,
-                )
-
-            # Read split from storage
-            self._split_iterators[split] = storage_manager.read_split(
-                split=split, data_model=self.data_model, allowed_keys=allowed_keys
+    def _get_storage_manager(self, cached_storage_type: FileStorageType):
+        if cached_storage_type == FileStorageType.DELTALAKE:
+            from atria_datasets.core.storage.deltalake_storage_manager import (
+                DeltalakeStorageManager,
             )
 
-        self._sharded_splits_prepared = True
+            return DeltalakeStorageManager(
+                storage_dir=self._storage_dir,
+                config_name=self.config.config_name,
+                num_processes=self._num_processes,
+            )
+        elif cached_storage_type == FileStorageType.MSGPACK:
+            from atria_datasets.core.storage.msgpack_storage_manager import (
+                MsgpackStorageManager,
+            )
 
-    def _prepare_cached_splits(self, access_token: str | None = None) -> None:
+            return MsgpackStorageManager(
+                storage_dir=self._storage_dir,
+                config_name=self.config.config_name,
+                num_processes=self._num_processes,
+            )
+        else:
+            raise ValueError(f"Unsupported storage type: {cached_storage_type}")
+
+    def _prepare_cached_splits(
+        self,
+        access_token: str | None = None,
+        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
+        preprocess_transform: Callable | None = None,
+    ) -> None:
         """Prepare cached splits using DeltaLake storage."""
-        from atria_datasets.core.storage.deltalake_storage_manager import (
-            DeltalakeStorageManager,
-        )
+        storage_manager = self._get_storage_manager(cached_storage_type)
 
         assert self._dataset_load_mode in [
             DatasetLoadingMode.in_memory,
@@ -710,12 +675,6 @@ class AtriaDataset(
             f"Dataset loading mode {self._dataset_load_mode} is not supported for cached splits. "
             "Use 'in_memory' or 'local_streaming' modes."
             f"For online streaming, use the 'online_streaming' mode with AtriaHubDataset."
-        )
-
-        storage_manager = DeltalakeStorageManager(
-            storage_dir=self._storage_dir,
-            config_name=self.config.config_name,
-            num_processes=self._num_processes,
         )
 
         info_saved = False
@@ -738,7 +697,9 @@ class AtriaDataset(
                         split=split,
                         data_model=self.data_model,
                         input_transform=self._input_transform,
-                        output_transform=OutputTransformer(self._data_dir),
+                        output_transform=OutputTransformer(self._data_dir)
+                        if preprocess_transform is None
+                        else preprocess_transform,
                         base_iterator=self._split_iterator(split, self._data_dir),
                         max_len=self.get_max_split_samples(split),
                     )
@@ -755,11 +716,7 @@ class AtriaDataset(
             if self._split is not None and split != self._split:
                 continue
             self._split_iterators[split] = storage_manager.read_split(
-                split=split,
-                data_model=self.data_model,
-                allowed_keys=self._allowed_keys,
-                streaming_mode=self._dataset_load_mode
-                == DatasetLoadingMode.local_streaming,
+                split=split, data_model=self.data_model, allowed_keys=self._allowed_keys
             )
 
     def _prepare_splits(self, access_token: str | None = None) -> None:

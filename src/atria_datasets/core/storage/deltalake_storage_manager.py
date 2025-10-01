@@ -319,9 +319,6 @@ class ParallelStorageWriter(ShardedDeltalakeStorageWriter):
 class DeltalakeStorageManager:
     """
     A class for managing dataset storage in deltalake format
-
-    Attributes:
-        _streaming_mode (bool): Whether to enable streaming mode for WebDataset. Defaults to False.
     """
 
     def __init__(
@@ -330,11 +327,13 @@ class DeltalakeStorageManager:
         config_name: str,
         num_processes: int = 8,
         max_memory: int = 1000_000_000,
+        preprocess_transform: Callable | None = None,
     ):
         self._storage_dir = Path(storage_dir)
         self._config_name = config_name
         self._num_processes = num_processes
         self._max_memory = max_memory
+        self._preprocess_transform = preprocess_transform
 
         if not self._storage_dir.exists():
             self._storage_dir.mkdir(parents=True, exist_ok=True)

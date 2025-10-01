@@ -103,7 +103,7 @@ class MsgpackShardWriter:
         maxsize: float = 3e9,
         post: Callable | None = None,
         start_shard: int = 0,
-        verbose: int = 1,
+        verbose: int = 0,
         opener: Callable | None = None,
         **kw,
     ):
