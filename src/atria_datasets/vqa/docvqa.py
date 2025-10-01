@@ -1,5 +1,6 @@
 import json
 import pickle
+import uuid
 from collections.abc import Generator, Iterable
 from pathlib import Path
 
@@ -299,6 +300,8 @@ class SplitIterator:
 
 @DATASET.register("docvqa")
 class DocVQA(AtriaDocumentDataset):
+    __config_cls__ = DocVQAConfig
+
     def _download_urls(self) -> list[str]:
         return _URLS
 
@@ -325,7 +328,7 @@ class DocVQA(AtriaDocumentDataset):
 
     def _input_transform(self, sample: dict) -> DocumentInstance:
         return DocumentInstance(
-            sample_id=Path(sample["image_file_path"]).name,
+            sample_id=Path(sample["image_file_path"]).name + "-" + uuid.uuid4().hex[:8],
             image=Image(file_path=sample["image_file_path"]),
             gt=GroundTruth(
                 vqa=VisualQuestionAnswerGT(

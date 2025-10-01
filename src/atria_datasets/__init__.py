@@ -59,9 +59,6 @@ if TYPE_CHECKING:
         MsgpackFileWriter,
         MsgpackShardWriter,
     )
-    from atria_datasets.core.storage.sharded_dataset_storage_manager import (
-        ShardedDatasetStorageManager,
-    )
     from atria_datasets.core.storage.utilities import FileStorageType
     from atria_datasets.registry import (
         BATCH_SAMPLER,

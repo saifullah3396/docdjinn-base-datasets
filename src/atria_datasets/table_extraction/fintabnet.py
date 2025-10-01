@@ -107,12 +107,13 @@ class SplitIterator:
 @DATASET.register(
     "fintabnet",
     configs=[
+        AtriaDatasetConfig(config_name="default"),
         AtriaDatasetConfig(
             config_name="1k",
             max_train_samples=1000,
             max_validation_samples=1000,
             max_test_samples=1000,
-        )
+        ),
     ],
 )
 class FinTabNet(AtriaDocumentDataset):

@@ -10,45 +10,67 @@ logger = get_logger(__name__)
 
 def visualize_samples(dataset, split_name="train", num_samples=16, grid_cols=4):
     """Visualize dataset samples in a grid layout."""
-    from atria_core.types import DocumentInstance, ImageInstance
-
     split = getattr(dataset, split_name)
 
     # Calculate grid dimensions
     grid_rows = (num_samples + grid_cols - 1) // grid_cols
 
-    fig, axes = plt.subplots(grid_rows, grid_cols, figsize=(12, 8))
-    fig.subplots_adjust(hspace=0, wspace=0)
+    fig, axes = plt.subplots(grid_rows, grid_cols, figsize=(15, 4 * grid_rows))
     if grid_rows == 1:
         axes = axes.reshape(1, -1)
-    if grid_rows * grid_cols == 1:
-        axes = [axes]
 
-    samples: DocumentInstance | ImageInstance = []
+    samples = []
     for i, sample in enumerate(split):
         if i >= num_samples:
             break
-        sample: DocumentInstance | ImageInstance
         sample.load()
         samples.append(sample)
 
     for i in range(grid_rows * grid_cols):
         row = i // grid_cols
         col = i % grid_cols
-
-        if grid_rows == 1:
-            ax = axes[col] if grid_cols > 1 else axes[0]
-        else:
-            ax = axes[row, col]
+        ax = axes[row, col]
 
         if i < len(samples):
             sample = samples[i]
-            ax.imshow(sample.image.content)
-            ax.set_title(f"ID: {sample.sample_id}", fontsize=10)
+
+            # Handle different types of data (images, text, etc.)
+            if hasattr(sample, "image") and sample.image is not None:
+                # Display image
+                ax.imshow(sample.image)
+                ax.set_title(f"Sample {i}")
+            elif hasattr(sample, "text") and sample.text is not None:
+                # Display text
+                ax.text(
+                    0.5,
+                    0.5,
+                    str(sample.text)[:100] + "...",
+                    ha="center",
+                    va="center",
+                    wrap=True,
+                    fontsize=8,
+                )
+                ax.set_title(f"Sample {i}")
+            else:
+                # Display sample info
+                sample_info = str(sample)[:200] + "..."
+                ax.text(
+                    0.5,
+                    0.5,
+                    sample_info,
+                    ha="center",
+                    va="center",
+                    wrap=True,
+                    fontsize=6,
+                )
+                ax.set_title(f"Sample {i}")
+        else:
+            ax.text(0.5, 0.5, "No data", ha="center", va="center")
+            ax.set_title("Empty")
 
         ax.axis("off")
 
-    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    plt.tight_layout()
     plt.show()
 
 
@@ -60,9 +82,9 @@ def main(
     num_processes: int = 8,
     upload_to_hub: bool = False,
     overwrite_in_hub: bool = True,
-    visualize: bool = False,
-    visualized_split: str = "train",
-    n_visualized_samples: int = 16,
+    visualize: bool = True,
+    split_name: str = "train",
+    num_samples: int = 16,
     grid_cols: int = 4,
 ):
     from atria_datasets import AtriaDataset
@@ -80,10 +102,8 @@ def main(
     logger.info(f"Loaded dataset:\n{dataset}")
 
     if visualize:
-        logger.info(
-            f"Visualizing {n_visualized_samples} samples from {visualized_split} split"
-        )
-        visualize_samples(dataset, visualized_split, n_visualized_samples, grid_cols)
+        logger.info(f"Visualizing {num_samples} samples from {split_name} split")
+        visualize_samples(dataset, split_name, num_samples, grid_cols)
 
     if upload_to_hub:
         dataset.upload_to_hub(overwrite_existing=overwrite_in_hub)
