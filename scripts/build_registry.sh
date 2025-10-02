@@ -22,6 +22,4 @@ if [[ -z "$PROJECT_ROOT" ]]; then
     exit 1
 fi
 
-export PYTHONPATH="$PROJECT_ROOT/src:"
-
 ATRIA_FILE_STORE_BUILD_ENABLED=True uv run $SCRIPT_DIR/../src/atria_datasets/build_registry.py

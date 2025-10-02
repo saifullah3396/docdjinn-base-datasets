@@ -174,3 +174,4 @@ cython_debug/
 tmp/
 test.py
 data_dir/
+examples/integration/
