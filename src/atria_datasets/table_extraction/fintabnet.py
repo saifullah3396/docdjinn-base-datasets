@@ -9,10 +9,10 @@ from atria_core.types import (
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
     Image,
-    LayoutAnalysisGT,
+    LayoutAnalysisAnnotation,
 )
+from atria_core.types.generic.document_content import DocumentContent
 
 from atria_datasets import DATASET, AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
@@ -88,13 +88,12 @@ class SplitIterator:
             yield DocumentInstance(
                 sample_id=Path(image_file_path).name,
                 image=Image(file_path=image_file_path),
-                gt=GroundTruth(
-                    layout=LayoutAnalysisGT(
-                        annotated_objects=annotated_objects,
-                        words=words,
-                        word_bboxes=BoundingBoxList.from_list(word_bboxes),
-                    )
+                content=DocumentContent(
+                    words=words, word_bboxes=BoundingBoxList.from_list(word_bboxes)
                 ),
+                annotations=[
+                    LayoutAnalysisAnnotation(annotated_objects=annotated_objects)
+                ],
             )
 
     def __len__(self) -> int:

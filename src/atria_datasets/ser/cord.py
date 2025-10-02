@@ -6,13 +6,13 @@ from typing import Any
 import pandas as pd
 from atria_core.logger.logger import get_logger
 from atria_core.types import (
-    SERGT,
     BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
-    GroundTruth,
+    EntityLabelingAnnotation,
     Label,
     LabelList,
 )
@@ -128,7 +128,9 @@ class SplitIterator:
             box = tuple(bbox)
         return box
 
-    def _load_ground_truth(self, row: pd.Series, image_size: tuple[int, int]) -> SERGT:
+    def _load_content_and_annotations(
+        self, row: pd.Series, image_size: tuple[int, int]
+    ) -> tuple[str, DocumentContent, EntityLabelingAnnotation]:
         words = []
         word_bboxes = []
         word_segment_level_bboxes = []
@@ -167,18 +169,23 @@ class SplitIterator:
             word_bboxes.extend(cur_line_bboxes)
             cur_line_bboxes = _get_line_bboxes(cur_line_bboxes)
             word_segment_level_bboxes.extend(cur_line_bboxes)
-        return annotation["meta"]["image_id"], GroundTruth(
-            ser=SERGT(
+        return (
+            annotation["meta"]["image_id"],
+            DocumentContent(
                 words=words,
                 word_bboxes=BoundingBoxList(value=word_bboxes),
+                word_segment_level_bboxes=BoundingBoxList(
+                    value=word_segment_level_bboxes
+                ),
+            ),
+            EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
                     [
                         Label(value=_CLASSES.index(word_label), name=word_label)
                         for word_label in word_labels
                     ]
-                ),
-                segment_level_bboxes=BoundingBoxList(value=word_segment_level_bboxes),
-            )
+                )
+            ),
         )
 
     def __iter__(self) -> Generator[tuple[str, dict[str, Any]], None, None]:
@@ -189,9 +196,14 @@ class SplitIterator:
             image = Image(
                 content=PILImageModule.open(io.BytesIO(row["image"]["bytes"]))
             )
-            image_id, ground_truth = self._load_ground_truth(row, image.size)
+            image_id, content, annotation = self._load_content_and_annotations(
+                row, image.size
+            )
             yield DocumentInstance(
-                sample_id=str(image_id), image=image, gt=ground_truth
+                sample_id=str(image_id),
+                image=image,
+                content=content,
+                annotations=[annotation],
             )
 
 

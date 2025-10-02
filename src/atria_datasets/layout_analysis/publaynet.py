@@ -7,10 +7,9 @@ from atria_core.types import (
     DatasetLabels,
     DatasetMetadata,
     DocumentInstance,
-    GroundTruth,
     Image,
     Label,
-    LayoutAnalysisGT,
+    LayoutAnalysisAnnotation,
 )
 
 from atria_datasets import DATASET, AtriaHuggingfaceDocumentDataset
@@ -66,7 +65,5 @@ class PubLayNet(AtriaHuggingfaceDocumentDataset):
         return DocumentInstance(
             sample_id=sample["image_id"],
             image=image,
-            gt=GroundTruth(
-                layout=LayoutAnalysisGT(annotated_objects=annotated_objects)
-            ),
+            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
         )

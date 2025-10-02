@@ -20,6 +20,7 @@ dependencies = [
     "deltalake>=1.0.2",
     "docile-benchmark>=0.3.4",
     "editdistance>=0.8.1",
+    "einops>=0.8.1",
     "filelock>=3.18.0",
     "fire>=0.7.0",
     "gdown>=5.2.0",
@@ -32,14 +33,16 @@ dependencies = [
     "pandas>=2.3.1",
     "pyarrow-hotfix>=0.7",
     "pycocotools>=2.0.10",
+    "pyqt6>=6.9.1",
     "pyyaml>=6.0.2",
     "ray>=2.47.1",
     "requests>=2.32.4",
+    "ruff>=0.12.12",
     "sacremoses>=0.1.1",
     "scikit-learn>=1.7.0",
     "textdistance>=4.6.3",
     "tqdm>=4.67.1",
-    "transformers>=4.53.3",
+    "transformers==4.53.3",
     "webdataset>=1.0.2",
     "wids>=0.1.11",
 ]
@@ -133,7 +136,7 @@ managed = true
 mmcv = { url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" }
 datadings = { git = "https://github.com/saifullah3396/datadings.git" }
 atria-registry = { git = "https://github.com/saifullah3396/atria_registry.git" }
-atria-core = { git = "https://github.com/saifullah3396/atria_core.git" }
+atria-core = { git = "https://github.com/saifullah3396/atria_core.git", branch = "devel-estella" }
 atria-hub = { git = "https://github.com/saifullah3396/atria_hub.git" }
 
 [dependency-groups]
@@ -144,12 +147,6 @@ dev = [
     "pytest>=8.4.1",
     "ruff>=0.12.2",
     "ipykernel>=6.28.1",
-]
-docsets = [
-    "pyarrow-hotfix>=0.7",
-    "docile-benchmark==0.3.4",
-    "editdistance",
-    "sacremoses"
 ]
 
 [tool.mypy]

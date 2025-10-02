@@ -4,13 +4,13 @@ from collections.abc import Generator
 from pathlib import Path
 
 from atria_core.types import (
-    SERGT,
     BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
-    GroundTruth,
+    EntityLabelingAnnotation,
     Image,
     Label,
     LabelList,
@@ -64,9 +64,9 @@ class SplitIterator:
         self.ann_dir = self.split_dir / "tagged"
         self.image_dir = self.split_dir / "images"
 
-    def _load_ground_truth(
+    def _load_content_and_annotations(
         self, annotation_path: Path, image_size: tuple[int, int]
-    ) -> GroundTruth:
+    ) -> tuple[DocumentContent, EntityLabelingAnnotation]:
         with open(annotation_path, encoding="utf8") as f:
             sample = json.load(f)
 
@@ -84,28 +84,32 @@ class SplitIterator:
             word_bboxes.append(_normalize_bbox(box, image_size))
             word_labels.append(label)
 
-        return GroundTruth(
-            ser=SERGT(
-                words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes),
+        return (
+            DocumentContent(
+                words=words, word_bboxes=BoundingBoxList(value=word_bboxes)
+            ),
+            EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
                     [
                         Label(value=_CLASSES.index(label), name=label)
                         for label in word_labels
                     ]
-                ),
-            )
+                )
+            ),
         )
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
         for filename in sorted(os.listdir(self.image_dir)):
             image = Image(file_path=self.image_dir / Path(filename).name)
-            ground_truth = self._load_ground_truth(
+            content, annotation = self._load_content_and_annotations(
                 annotation_path=self.ann_dir / Path(filename).with_suffix(".json"),
                 image_size=image.size,
             )
             yield DocumentInstance(
-                sample_id=Path(filename).name, image=image, gt=ground_truth
+                sample_id=Path(filename).name,
+                image=image,
+                content=content,
+                annotations=[annotation],
             )
 
     def __len__(self) -> int:

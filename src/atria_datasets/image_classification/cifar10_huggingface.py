@@ -1,6 +1,6 @@
 from typing import Any
 
-from atria_core.types import ClassificationGT, GroundTruth, Image, ImageInstance, Label
+from atria_core.types import ClassificationAnnotation, Image, ImageInstance, Label
 
 from atria_datasets import DATASET, AtriaHuggingfaceImageDataset
 from atria_datasets.core.dataset.atria_huggingface_dataset import (
@@ -30,8 +30,8 @@ class HuggingfaceCifar10(AtriaHuggingfaceImageDataset):
     def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:
         return ImageInstance(
             image=Image(content=sample["img"]),
-            gt=GroundTruth(
-                classification=ClassificationGT(
+            annotations=[
+                ClassificationAnnotation(
                     label=Label(
                         value=sample["label"],
                         name=self.metadata.dataset_labels.classification[
@@ -39,5 +39,5 @@ class HuggingfaceCifar10(AtriaHuggingfaceImageDataset):
                         ],
                     )
                 )
-            ),
+            ],
         )

@@ -20,17 +20,17 @@ from pathlib import Path
 
 from atria_core.logger.logger import get_logger
 from atria_core.types import (
-    SERGT,
     BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
     Image,
     Label,
     LabelList,
 )
+from atria_core.types.generic.annotations import EntityLabelingAnnotation
+from atria_core.types.generic.document_content import DocumentContent
 
 from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import (
@@ -128,7 +128,9 @@ class SplitIterator:
             logger.info(f"Loading split data from {self.split_filepath}")
             self.split_data = json.load(f)
 
-    def _load_ground_truth(self, text_file: Path, image_file_path: Path) -> GroundTruth:
+    def _load_content_and_annotations(
+        self, text_file: Path, image_file_path: Path
+    ) -> tuple[DocumentContent, EntityLabelingAnnotation]:
         words = []
         word_bboxes = []
         word_labels = []
@@ -157,17 +159,18 @@ class SplitIterator:
                 word_bboxes.append(bbox)  # boxes are already normalized 0 to 1000
                 word_labels.append(structure.strip())
 
-        return GroundTruth(
-            ser=SERGT(
-                words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes),
+        return (
+            DocumentContent(
+                words=words, word_bboxes=BoundingBoxList(value=word_bboxes)
+            ),
+            EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
                     [
                         Label(value=_CLASSES.index(word_label), name=word_label)
                         for word_label in word_labels
                     ]
-                ),
-            )
+                )
+            ),
         )
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
@@ -182,18 +185,19 @@ class SplitIterator:
                 image_file_path.replace("_ori.jpg", "") + ".txt"
             )
 
-            ground_truth = self._load_ground_truth(
+            content, annotation = self._load_content_and_annotations(
                 text_file, self.image_base_dir / image_file_path
             )
 
             if (
-                len(ground_truth.ser.words) > 0
-                and len(ground_truth.ser.words) < self.config.max_words_per_sample
+                len(content.words) > 0
+                and len(content.words) < self.config.max_words_per_sample
             ):
                 yield DocumentInstance(
                     sample_id=Path(image_file_path).name,
                     image=Image(file_path=self.image_base_dir / image_file_path),
-                    gt=ground_truth,
+                    content=content,
+                    annotations=[annotation],
                 )
 
     def __len__(self) -> int:

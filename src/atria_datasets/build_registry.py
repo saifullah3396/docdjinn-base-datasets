@@ -7,6 +7,7 @@ from atria_datasets.document_classification.tobacco3482 import *  # noqa
 from atria_datasets.image_classification.cifar10 import *  # noqa
 from atria_datasets.image_classification.cifar10_huggingface import *  # noqa
 from atria_datasets.image_classification.mnist import *  # noqa
+from atria_datasets.language_modeling.due import *  # noqa
 from atria_datasets.layout_analysis.doclaynet import *  # noqa
 from atria_datasets.layout_analysis.icdar2019 import *  # noqa
 from atria_datasets.layout_analysis.publaynet import *  # noqa

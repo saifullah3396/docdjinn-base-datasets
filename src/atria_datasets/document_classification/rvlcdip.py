@@ -5,12 +5,11 @@ from pathlib import Path
 
 from atria_core.types import (
     OCR,
-    ClassificationGT,
+    ClassificationAnnotation,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
     Image,
     Label,
     OCRType,
@@ -168,9 +167,9 @@ class RvlCdip(AtriaDocumentDataset):
             ocr=OCR(file_path=ocr_file_path, type=OCRType.tesseract)
             if self.config.load_ocr
             else None,
-            gt=GroundTruth(
-                classification=ClassificationGT(
+            annotations=[
+                ClassificationAnnotation(
                     label=Label(value=int(label), name=_CLASSES[int(label)])
                 )
-            ),
+            ],
         )

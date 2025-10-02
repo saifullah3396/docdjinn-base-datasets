@@ -5,17 +5,17 @@ from pathlib import Path
 import PIL
 from atria_core.logger.logger import get_logger
 from atria_core.types import (
-    SERGT,
     BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
     Image,
     Label,
     LabelList,
 )
+from atria_core.types.generic.annotations import EntityLabelingAnnotation
+from atria_core.types.generic.document_content import DocumentContent
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Dataset
 
 from atria_datasets import DATASET
@@ -121,18 +121,20 @@ class SplitIterator:
                 image=Image(
                     content=PIL.Image.open(io.BytesIO(base64.b64decode(row["img"])))
                 ),
-                gt=GroundTruth(
-                    ser=SERGT(
-                        words=row["tokens"],
-                        word_bboxes=BoundingBoxList(value=row["bboxes"]),
+                content=DocumentContent(
+                    words=row["tokens"],
+                    word_bboxes=BoundingBoxList(value=row["bboxes"]),
+                ),
+                annotations=[
+                    EntityLabelingAnnotation(
                         word_labels=LabelList.from_list(
                             [
                                 Label(value=label, name=self.label_names[label])
                                 for label in row["ner_tags"]
                             ]
-                        ),
+                        )
                     )
-                ),
+                ],
             )
 
 

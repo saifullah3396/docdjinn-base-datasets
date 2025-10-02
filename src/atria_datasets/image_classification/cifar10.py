@@ -1,9 +1,8 @@
 from atria_core.types import (
-    ClassificationGT,
+    ClassificationAnnotation,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
-    GroundTruth,
     Image,
     ImageInstance,
     Label,
@@ -66,10 +65,10 @@ class Cifar10(AtriaImageDataset):
     def _input_transform(self, sample) -> ImageInstance:
         image_instance = ImageInstance(
             image=Image(content=sample[0]),
-            gt=GroundTruth(
-                classification=ClassificationGT(
+            annotations=[
+                ClassificationAnnotation(
                     label=Label(value=sample[1], name=_CLASSES[sample[1]])
                 )
-            ),
+            ],
         )
         return image_instance

@@ -9,9 +9,8 @@ from atria_core.types import (
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
     Image,
-    LayoutAnalysisGT,
+    LayoutAnalysisAnnotation,
 )
 
 from atria_datasets import DATASET, AtriaDocumentDataset
@@ -232,13 +231,13 @@ class PubTables1M(AtriaDocumentDataset):
                         yield DocumentInstance(
                             sample_id=Path(img_file).name,
                             image=Image(file_path=img_file),
-                            gt=GroundTruth(
-                                layout=LayoutAnalysisGT(
+                            annotations=[
+                                LayoutAnalysisAnnotation(
                                     annotated_objects=AnnotatedObjectList.from_list(
                                         annotated_objects
                                     )
                                 )
-                            ),
+                            ],
                         )
 
             def __len__(self) -> int:

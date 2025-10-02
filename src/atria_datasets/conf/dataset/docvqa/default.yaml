@@ -5,3 +5,5 @@ config_name: default
 max_train_samples: null
 max_validation_samples: null
 max_test_samples: null
+answers_extraction_method: v1
+with_msr_ocr: true

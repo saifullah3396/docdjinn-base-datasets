@@ -5,17 +5,17 @@ from pathlib import Path
 
 from atria_core.logger.logger import get_logger
 from atria_core.types import (
-    SERGT,
+    BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
-    GroundTruth,
+    EntityLabelingAnnotation,
     Image,
     Label,
     LabelList,
 )
-from atria_core.types.factory import BoundingBoxList
 
 from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import (
@@ -38,7 +38,7 @@ _CITATION = """"""
 _DESCRIPTION = """FUNSD Dataset"""
 
 _HOMEPAGE = "https://guillaumejaume.github.io/FUNSD/"
-_DATA_URL = "https://guillaumejaume.github.io/FUNSD/dataset.zip"
+_DATA_URLS = ["https://guillaumejaume.github.io/FUNSD/dataset.zip"]
 
 _LICENSE = "Apache-2.0 license"
 
@@ -71,9 +71,9 @@ class SplitIterator:
         self.image_dir = self.split_dir / "images"
         self.config = config
 
-    def _load_ground_truth(
+    def _load_content_and_annotations(
         self, annotation_path: Path, image_size: tuple[int, int]
-    ) -> GroundTruth:
+    ) -> tuple[DocumentContent, EntityLabelingAnnotation]:
         words = []
         word_bboxes = []
         word_segment_level_bboxes = []
@@ -122,29 +122,36 @@ class SplitIterator:
                 word_segment_level_bboxes[i] for i in sorted_indces
             ]
 
-        return GroundTruth(
-            ser=SERGT(
+        return (
+            DocumentContent(
                 words=words,
                 word_bboxes=BoundingBoxList(value=word_bboxes),
+                word_segment_level_bboxes=BoundingBoxList(
+                    value=word_segment_level_bboxes
+                ),
+            ),
+            EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
                     [
                         Label(value=_CLASSES.index(word_label), name=word_label)
                         for word_label in word_labels
                     ]
-                ),
-                segment_level_bboxes=BoundingBoxList(value=word_segment_level_bboxes),
-            )
+                )
+            ),
         )
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
         for filename in sorted(os.listdir(self.image_dir)):
             image = Image(file_path=self.image_dir / Path(filename).name)
-            ground_truth = self._load_ground_truth(
+            content, annotation = self._load_content_and_annotations(
                 annotation_path=self.ann_dir / Path(filename).with_suffix(".json"),
                 image_size=(image.source_width, image.source_height),
             )
             yield DocumentInstance(
-                sample_id=Path(filename).name, image=image, gt=ground_truth
+                sample_id=Path(filename).name,
+                image=image,
+                content=content,
+                annotations=[annotation],
             )
 
     def __len__(self) -> int:
@@ -154,6 +161,9 @@ class SplitIterator:
 @DATASET.register("funsd")
 class FUNSD(AtriaDocumentDataset):
     __config_cls__ = FUNSDConfig
+
+    def _download_urls(self) -> dict[str, tuple[str, str]]:
+        return _DATA_URLS
 
     def _metadata(self) -> DatasetMetadata:
         return DatasetMetadata(

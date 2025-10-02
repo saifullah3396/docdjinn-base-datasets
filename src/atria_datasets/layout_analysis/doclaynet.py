@@ -4,14 +4,13 @@ from atria_core.types import (
     AnnotatedObject,
     BoundingBox,
     BoundingBoxMode,
-    ClassificationGT,
+    ClassificationAnnotation,
     DatasetLabels,
     DatasetMetadata,
     DocumentInstance,
-    GroundTruth,
     Image,
     Label,
-    LayoutAnalysisGT,
+    LayoutAnalysisAnnotation,
 )
 
 from atria_datasets import DATASET
@@ -89,13 +88,13 @@ class DocLayNet(AtriaHuggingfaceDocumentDataset):
         return DocumentInstance(
             sample_id=sample["image_id"],
             image=image,
-            gt=GroundTruth(
-                classification=ClassificationGT(
+            annotations=[
+                ClassificationAnnotation(
                     label=Label(
                         value=_DOC_CLASSES.index(sample["doc_category"]),
                         name=sample["doc_category"],
                     )
                 ),
-                layout=LayoutAnalysisGT(annotated_objects=annotated_objects),
-            ),
+                LayoutAnalysisAnnotation(annotated_objects=annotated_objects),
+            ],
         )

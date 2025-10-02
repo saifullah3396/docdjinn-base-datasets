@@ -3,13 +3,13 @@ from collections.abc import Generator
 from pathlib import Path
 
 from atria_core.types import (
-    SERGT,
     BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
-    GroundTruth,
+    EntityLabelingAnnotation,
     Image,
     Label,
     LabelList,
@@ -96,9 +96,9 @@ class SplitIterator:
                 label_map[int(idx)] = label.strip()
         return label_map
 
-    def _load_ground_truth(
+    def _load_content_and_annotations(
         self, sample_info: dict, image_size: tuple[int, int]
-    ) -> GroundTruth:
+    ) -> tuple[DocumentContent, EntityLabelingAnnotation]:
         words = []
         labels = []
         bboxes = []
@@ -132,17 +132,18 @@ class SplitIterator:
             word_labels = labels
             word_bboxes = bboxes
 
-        return GroundTruth(
-            ser=SERGT(
-                words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes),
+        return (
+            DocumentContent(
+                words=words, word_bboxes=BoundingBoxList(value=word_bboxes)
+            ),
+            EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
                     [
                         Label(value=_CLASSES.index(label), name=label)
                         for label in word_labels
                     ]
-                ),
-            )
+                )
+            ),
         )
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
@@ -156,11 +157,14 @@ class SplitIterator:
             image = Image(
                 file_path=self.split_file_path.parent / sample_info["file_name"]
             )
-            ground_truth = self._load_ground_truth(
+            content, annotations = self._load_content_and_annotations(
                 sample_info=sample_info, image_size=image.size
             )
             yield DocumentInstance(
-                sample_id=sample_info["file_name"], image=image, gt=ground_truth
+                sample_id=sample_info["file_name"],
+                image=image,
+                content=content,
+                annotations=[annotations],
             )
 
     def __len__(self) -> int:

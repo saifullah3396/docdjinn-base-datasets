@@ -13,11 +13,11 @@ from atria_core.types import (
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
+    ExtractiveQAPair,
     Image,
-    QuestionAnswerPair,
-    VisualQuestionAnswerGT,
 )
+from atria_core.types.generic.annotations import ExtractiveQAAnnotation
+from atria_core.types.generic.document_content import DocumentContent
 from datasets import load_from_disk
 
 from atria_datasets import DATASET, AtriaDocumentDataset
@@ -98,6 +98,9 @@ class SplitIterator:
                 f"Data directory {self.data_dir} does not exist. You must download the dataset first from homepage: {_HOMEPAGE}"
             )
         self.preprocessed_dataset = self._load_and_preprocess_dataset()
+        self.preprocessed_dataset = self._group_dataset_documents(
+            self.preprocessed_dataset
+        )
 
     def _read_dataset_from_filepath(self, filepath: str):
         with open(filepath) as f:
@@ -258,6 +261,9 @@ class SplitIterator:
 
             sample_data = {
                 # image
+                "doc_id": sample["docId"],
+                "ucsf_document_id": sample["ucsf_document_id"],
+                "ucsf_document_page_no": sample["ucsf_document_page_no"],
                 "image_file_path": self.data_dir
                 / sample["image"].replace("documents", "spdocvqa_images"),
                 # text
@@ -293,6 +299,55 @@ class SplitIterator:
         logger.info(f"Preprocessed dataset saved to {preprocessed_dataset_path}")
 
         return preprocessed_dataset
+
+    def _group_dataset_documents(self, preprocessed_dataset: list[dict]) -> list[dict]:
+        import pickle
+
+        grouped_dataset_path = (
+            self.data_dir / f"{self.split.value}_grouped_preprocessed_dataset.pkl"
+        )
+
+        if grouped_dataset_path.exists():
+            with open(grouped_dataset_path, "rb") as pickle_file:
+                return pickle.load(pickle_file)
+
+        # in second preprocessing step, we take each unique docss and combine their quesiton lists
+        # Group questions by document ID
+        doc_grouped_data = {}
+        for sample in preprocessed_dataset:
+            doc_id = sample["doc_id"]
+
+            if doc_id not in doc_grouped_data:
+                doc_grouped_data[doc_id] = {
+                    "image_file_path": sample["image_file_path"],
+                    "words": sample["words"],
+                    "word_bboxes": sample["word_bboxes"],
+                    "segment_level_bboxes": sample["segment_level_bboxes"],
+                    "questions": [],
+                }
+
+            # Add question data to the document
+            doc_grouped_data[doc_id]["questions"].append(
+                {
+                    "question_id": sample["question_id"],
+                    "question": sample["question"],
+                    "gold_answers": sample["gold_answers"],
+                    "answer_start_indices": sample["answer_start_indices"],
+                    "answer_end_indices": sample["answer_end_indices"],
+                }
+            )
+
+        # Convert back to list format with grouped questions per document
+        grouped_dataset = list(doc_grouped_data.values())
+        logger.info(
+            f"Grouped {len(grouped_dataset)} unique documents with multiple questions each"
+        )
+
+        with open(grouped_dataset_path, "wb") as pickle_file:
+            pickle.dump(grouped_dataset, pickle_file)
+        logger.info(f"Final preprocessed dataset saved to {grouped_dataset_path}")
+
+        return grouped_dataset
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
         yield from self.preprocessed_dataset
@@ -330,20 +385,25 @@ class DocVQA(AtriaDocumentDataset):
         return DocumentInstance(
             sample_id=Path(sample["image_file_path"]).name + "-" + uuid.uuid4().hex[:8],
             image=Image(file_path=sample["image_file_path"]),
-            gt=GroundTruth(
-                vqa=VisualQuestionAnswerGT(
-                    qa_pair=QuestionAnswerPair(
-                        id=sample["question_id"],
-                        question_text=sample["question"],
-                        answer_start=sample["answer_start_indices"],
-                        answer_end=sample["answer_end_indices"],
-                        answer_text=sample["gold_answers"],
-                    ),
-                    words=sample["words"],
-                    word_bboxes=BoundingBoxList(value=sample["word_bboxes"]),
-                    segment_level_bboxes=BoundingBoxList(
-                        value=sample["segment_level_bboxes"]
-                    ),
-                )
+            content=DocumentContent(
+                words=sample["words"],
+                word_bboxes=BoundingBoxList(value=sample["word_bboxes"]),
+                word_segment_level_bboxes=BoundingBoxList(
+                    value=sample["segment_level_bboxes"]
+                ),
             ),
+            annotations=[
+                ExtractiveQAAnnotation(
+                    qa_pairs=[
+                        ExtractiveQAPair(
+                            id=question["question_id"],
+                            question_text=question["question"],
+                            answer_start=question["answer_start_indices"],
+                            answer_end=question["answer_end_indices"],
+                            answer_text=question["gold_answers"],
+                        )
+                        for question in sample["questions"]
+                    ]
+                )
+            ],
         )

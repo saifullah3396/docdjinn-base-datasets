@@ -4,12 +4,11 @@ from random import shuffle
 
 from atria_core.types import (
     OCR,
-    ClassificationGT,
+    ClassificationAnnotation,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
     DocumentInstance,
-    GroundTruth,
     Image,
     Label,
     OCRType,
@@ -124,9 +123,9 @@ class Tobacco3482(AtriaDocumentDataset):
             ocr=OCR(file_path=ocr_file_path, type=OCRType.tesseract)
             if self.config.load_ocr
             else None,
-            gt=GroundTruth(
-                classification=ClassificationGT(
+            annotations=[
+                ClassificationAnnotation(
                     label=Label(name=_CLASSES[label_index], value=label_index)
                 )
-            ),
+            ],
         )
