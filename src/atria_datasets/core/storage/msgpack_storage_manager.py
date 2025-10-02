@@ -51,7 +51,7 @@ def shard_writer_worker(
         shard_file_pattern = str(
             Path(storage_dir)
             / config_name
-            / "shards"
+            / "msgpack"
             / split_name
             / f"{worker_id:06d}-%06d.msgpack"
         )
@@ -75,13 +75,11 @@ def shard_writer_worker(
                 # Timeout occurred, continue waiting
                 continue
             except Exception as e:
-                logger.error(f"Worker {worker_id} error processing sample: {e}")
-                # Continue processing other samples
-                continue
+                raise RuntimeError(f"Worker {worker_id} failed with error: {e}") from e
 
         result_queue.put(writer.close())
     except Exception as e:
-        logger.error(f"Worker {worker_id} failed with error: {e}")
+        logger.exception(e)
         result_queue.put([])  # Put empty result to avoid blocking
 
 
@@ -197,11 +195,10 @@ def write_split_single(
     data_iterator = iter(split_iterator)
 
     shard_file_pattern = str(
-        Path(storage_dir) / config_name / "shards" / split_name / "000000-%06d.msgpack"
+        Path(storage_dir) / config_name / "msgpack" / split_name / "000000-%06d.msgpack"
     )
 
     writer = OnlineShardWriter(
-        chunked_iterator=data_iterator,
         data_model=split_iterator.data_model,
         storage_type=FileStorageType.MSGPACK,
         storage_file_pattern=shard_file_pattern,
@@ -256,10 +253,10 @@ class MsgpackStorageManager:
         (self._storage_dir / config_name).mkdir(parents=True, exist_ok=True)
 
     def split_dir(self, split: DatasetSplitType) -> Path:
-        return Path(self._storage_dir) / f"{self._config_name}/shards/{split.value}"
+        return Path(self._storage_dir) / f"{self._config_name}/msgpack/{split.value}"
 
     def dataset_exists(self) -> bool:
-        return (Path(self._storage_dir) / f"{self._config_name}/shards/").exists()
+        return (Path(self._storage_dir) / f"{self._config_name}/msgpack/").exists()
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         return self.split_dir(split).exists()
