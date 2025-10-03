@@ -55,6 +55,7 @@ def visualize_samples(dataset, split_name="train", num_samples=16, grid_cols=4):
 def main(
     name: str,
     data_dir: str,
+    cache_artifacts: bool = True,
     access_token: str | None = None,
     overwrite_existing_cached: bool = False,
     num_processes: int = 8,
@@ -75,6 +76,7 @@ def main(
         num_processes=num_processes,
         enable_cached_splits=True,
         cached_storage_type=FileStorageType.MSGPACK,
+        cache_artifacts=cache_artifacts,
         dataset_load_mode=DatasetLoadingMode.local_streaming,
     )
     logger.info(f"Loaded dataset:\n{dataset}")

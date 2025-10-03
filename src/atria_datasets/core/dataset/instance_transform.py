@@ -45,10 +45,12 @@ class InstanceTransform:
         data_model: T_BaseDataInstance,
         input_transform: Callable | None = None,
         output_transform: Callable | None = None,
+        load_from_disk: bool = True,
     ):
         self._data_model = data_model
         self._input_transform = input_transform
         self._output_transform = output_transform
+        self._load_from_disk = load_from_disk
 
     def __call__(self, index: int, data_instance: Any) -> BaseDataInstance:
         # apply input transformation
@@ -64,7 +66,8 @@ class InstanceTransform:
         if data_instance.index is None:
             data_instance.index = index
 
-        data_instance.load()
+        if self._load_from_disk:
+            data_instance.load()
 
         # yield the transformed data instance if output transform is enabled
         if self._output_transform is not None:

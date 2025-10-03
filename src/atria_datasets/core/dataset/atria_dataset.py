@@ -52,12 +52,19 @@ from atria_datasets.core.typing.common import T_BaseDataInstance
 logger = get_logger(__name__)
 
 
-class OutputTransformer:
-    def __init__(self, data_dir: str):
+class DefaultOutputTransformer:
+    def __init__(self, data_dir: str, max_cache_image_size: int = 1024):
         self._data_dir = data_dir
+        self._max_cache_image_size = max_cache_image_size
 
     def __call__(self, sample: Any | T_BaseDataInstance) -> T_BaseDataInstance:
-        return sample.load().to_relative_file_paths(data_dir=self._data_dir)
+        assert isinstance(sample, BaseDataInstance), (
+            f"Expected sample to be a BaseDataInstance, got {type(sample)}"
+        )
+        if hasattr(sample, "image") and sample.image is not None:
+            sample.image.resize_with_aspect_ratio(max_size=self._max_cache_image_size)
+
+        return sample.to_relative_file_paths(data_dir=self._data_dir)
 
 
 class DatasetLoadingMode(str, enum.Enum):
@@ -304,6 +311,7 @@ class AtriaDataset(
         num_processes: int = 8,
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
         enable_cached_splits: bool = True,
+        cache_artifacts: bool = True,
         build_kwargs: dict[str, Any] | None = None,
     ) -> Self:  # noqa: F821
         """
@@ -346,6 +354,7 @@ class AtriaDataset(
             num_processes=num_processes,
             cached_storage_type=cached_storage_type,
             enable_cached_splits=enable_cached_splits,
+            cache_artifacts=cache_artifacts,
         )
         return dataset
 
@@ -362,6 +371,7 @@ class AtriaDataset(
         num_processes: int = 8,
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
         enable_cached_splits: bool = True,
+        cache_artifacts: bool = True,
     ) -> None:
         """
         Build and prepare a dataset split for use.
@@ -404,6 +414,7 @@ class AtriaDataset(
                 access_token=access_token,
                 cached_storage_type=cached_storage_type,
                 preprocess_transform=preprocess_transform,
+                cache_artifacts=cache_artifacts,
             )
         else:
             # first prepare uncached splits
@@ -664,6 +675,8 @@ class AtriaDataset(
         access_token: str | None = None,
         cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         preprocess_transform: Callable | None = None,
+        cache_artifacts: bool = True,
+        max_cache_image_size: int = 1024,
     ) -> None:
         """Prepare cached splits using DeltaLake storage."""
         storage_manager = self._get_storage_manager(cached_storage_type)
@@ -697,11 +710,14 @@ class AtriaDataset(
                         split=split,
                         data_model=self.data_model,
                         input_transform=self._input_transform,
-                        output_transform=OutputTransformer(self._data_dir)
+                        output_transform=DefaultOutputTransformer(
+                            self._data_dir, max_cache_image_size=max_cache_image_size
+                        )
                         if preprocess_transform is None
                         else preprocess_transform,
                         base_iterator=self._split_iterator(split, self._data_dir),
                         max_len=self.get_max_split_samples(split),
+                        load_from_disk=cache_artifacts,
                     )
                 )
                 if not info_saved:

@@ -38,6 +38,7 @@ import rich.pretty
 from atria_core.logger import get_logger
 from atria_core.types import DatasetSplitType
 from atria_core.utilities.repr import RepresentationMixin
+
 from atria_datasets.core.dataset.instance_transform import InstanceTransform
 from atria_datasets.core.typing.common import T_BaseDataInstance
 
@@ -64,6 +65,7 @@ class SplitIterator(Sequence[T_BaseDataInstance], RepresentationMixin):
         output_transform: Callable | None = None,
         max_len: int | None = None,
         subset_indices: list[int] | None = None,
+        load_from_disk: bool = True,
     ):
         self._split = split
         self._base_iterator = base_iterator
@@ -73,6 +75,7 @@ class SplitIterator(Sequence[T_BaseDataInstance], RepresentationMixin):
             input_transform=input_transform,
             data_model=data_model,
             output_transform=output_transform,
+            load_from_disk=load_from_disk,
         )
         self._tf_enabled = True
         self._is_iterable = isinstance(self._base_iterator, Iterable)
