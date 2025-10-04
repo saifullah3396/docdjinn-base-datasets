@@ -58,13 +58,15 @@ def main(
     cache_artifacts: bool = True,
     access_token: str | None = None,
     overwrite_existing_cached: bool = False,
-    num_processes: int = 8,
+    num_processes: int = 1,
     upload_to_hub: bool = False,
     overwrite_in_hub: bool = True,
     visualize: bool = False,
     visualized_split: str = "train",
     n_visualized_samples: int = 16,
     grid_cols: int = 4,
+    print_samples: bool = True,
+    max_samples: int | None = None,
 ):
     from atria_datasets import AtriaDataset
 
@@ -78,8 +80,19 @@ def main(
         cached_storage_type=FileStorageType.MSGPACK,
         cache_artifacts=cache_artifacts,
         dataset_load_mode=DatasetLoadingMode.local_streaming,
+        build_kwargs={
+            "max_train_samples": max_samples,
+            "max_test_samples": max_samples,
+            "max_validation_samples": max_samples,
+        },
     )
     logger.info(f"Loaded dataset:\n{dataset}")
+
+    if print_samples:
+        logger.info(f"Printing one sample from {name} dataset")
+        for sample in dataset.train:
+            logger.info(sample)
+            break
 
     if visualize:
         logger.info(

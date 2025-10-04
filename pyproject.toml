@@ -131,13 +131,15 @@ xfail_strict = true         # Treat tests that are marked as xfail but pass as t
 
 [tool.uv]
 managed = true
+override-dependencies = ["atria-core[with-torch]"]
+
 
 [tool.uv.sources]
 mmcv = { url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" }
 datadings = { git = "https://github.com/saifullah3396/datadings.git" }
 atria-registry = { git = "https://github.com/saifullah3396/atria_registry.git" }
-atria-core = { git = "https://github.com/saifullah3396/atria_core.git", branch = "devel-estella" }
 atria-hub = { git = "https://github.com/saifullah3396/atria_hub.git" }
+atria-core = { path = "../atria_core", editable = true }
 
 [dependency-groups]
 dev = [

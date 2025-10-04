@@ -3,6 +3,7 @@ from pathlib import Path
 
 from atria_core.logger import get_logger
 from atria_core.types import (
+    PDF,
     BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
@@ -11,9 +12,7 @@ from atria_core.types import (
 )
 from atria_core.types.generic.annotations import GenerativeQAAnnotation
 from atria_core.types.generic.document_content import DocumentContent
-from atria_core.types.generic.image import Image
 from atria_core.types.generic.question_answer_pair import GenerativeQAItem
-from pdf2image import convert_from_path
 
 from atria_datasets import DATASET, AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
@@ -119,6 +118,12 @@ class SplitIterator:
         extracted_name = config.config_name
         if config.config_name == "InfographicsVQA":
             extracted_name = "infographics_vqa"
+        if config.config_name == "DocVQA":
+            extracted_name = "docvqa"
+        if config.config_name == "PWC":
+            extracted_name = "AxCell"
+        if config.config_name == "KleisterCharity":
+            extracted_name = "kleister-charity"
         benchmark_dataset = BenchmarkDataset(
             directory=Path(data_dir)
             / "datasets"
@@ -176,19 +181,21 @@ class SplitIterator:
                 }
 
                 # we remap all due benchmark keys to what we require in our datasets
-                image_file_path = (
+                pdf_file_path = (
                     Path(self._data_dir)
                     / "pdfs"
                     / self._config.config_name  # base name then extracted name
                     / self._config.config_name
-                    / (grouped["sample_id"] + ".pdf")
+                    / (grouped["sample_id"])
                 )
+                if not str(pdf_file_path).endswith(".pdf"):
+                    pdf_file_path = Path(str(pdf_file_path) + ".pdf")
 
                 # if the file does not exist we ignore it
-                if image_file_path.exists():
+                if pdf_file_path.exists():
                     yield grouped
                 else:
-                    logger.warning(f"File {image_file_path} not found. Skipping it")
+                    logger.warning(f"File {pdf_file_path} not found. Skipping it")
                 grouped = []
 
             grouped.append(sample)
@@ -202,9 +209,13 @@ class SplitIterator:
     "due_benchmark",
     configs=[
         DueBenchmarkConfig(config_name="DocVQA", train_strategy="all_items"),
-        DueBenchmarkConfig(config_name="PWC", train_strategy="concat"),
+        DueBenchmarkConfig(
+            config_name="PWC", train_strategy="concat", ocr_engine="tesseract"
+        ),
         DueBenchmarkConfig(config_name="DeepForm", train_strategy="all_items"),
-        DueBenchmarkConfig(config_name="TabFact", train_strategy="all_items"),
+        DueBenchmarkConfig(
+            config_name="TabFact", train_strategy="all_items", ocr_engine="tesseract"
+        ),
         DueBenchmarkConfig(config_name="WikiTableQuestions", train_strategy="concat"),
         DueBenchmarkConfig(config_name="InfographicsVQA", train_strategy="all_items"),
         DueBenchmarkConfig(config_name="KleisterCharity", train_strategy="all_items"),
@@ -245,37 +256,30 @@ class DueBenchmark(AtriaDocumentDataset):
     def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
         import uuid
 
-        # from pdf2image import convert_from_path
-
         # we remap all due benchmark keys to what we require in our datasets
-        image_file_path = (
+        pdf_file_path = (
             Path(self._data_dir)
             / "pdfs"
             / self.config.config_name  # base name then extracted name
             / self.config.config_name
-            / (sample["sample_id"] + ".pdf")
+            / (sample["sample_id"])
         )
 
         # if the file does not exist we ignore it
-        if not image_file_path.exists():
-            raise FileNotFoundError(f"File {image_file_path} not found")
-
-        # load the pdf as image
-        # Convert PDF to images (one image per page)
-        images = convert_from_path(image_file_path)
-        assert len(images) == 1, "DueBenchmark only supports single page documents."
-        image = images[0]
+        if not str(pdf_file_path).endswith(".pdf"):
+            pdf_file_path = Path(str(pdf_file_path) + ".pdf")
 
         # resize image to max height and width
         doc = DocumentInstance(
             sample_id=sample["sample_id"] + f"-{uuid.uuid4().hex[:4]}",
-            image=Image(file_path=image_file_path, content=image),
+            pdf=PDF(file_path=str(pdf_file_path)),
             content=DocumentContent(
                 words=sample["document_2d"].tokens,
                 word_bboxes=BoundingBoxList(
                     value=sample["document_2d"]
                     .seg_data["tokens"]["org_bboxes"]
-                    .tolist()
+                    .tolist(),
+                    normalized=False,
                 ),
             ),
             annotations=[

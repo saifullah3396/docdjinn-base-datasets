@@ -75,7 +75,10 @@ def shard_writer_worker(
                 # Timeout occurred, continue waiting
                 continue
             except Exception as e:
-                raise RuntimeError(f"Worker {worker_id} failed with error: {e}") from e
+                logger.warning(
+                    f"Error while writing sample {idx}. Skipping sample. Error: {e}"
+                )
+                continue
 
         result_queue.put(writer.close())
     except Exception as e:
@@ -208,7 +211,13 @@ def write_split_single(
     writer.load()
 
     for idx, sample in tqdm.tqdm(data_iterator, desc=f"Writing split {split_name}"):
-        writer.write(idx, sample)
+        try:
+            writer.write(idx, sample)
+        except Exception as e:
+            logger.warning(
+                f"Error while writing sample {idx}. Skipping sample. Error: {e}"
+            )
+            continue
 
     write_info = writer.close()
     write_info = [x for x in write_info if x.nsamples > 0]

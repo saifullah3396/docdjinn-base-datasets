@@ -22,10 +22,10 @@ segment_levels:
 - tokens
 - pages
 long_page_strategy: FIRST_PART
-ocr_engine: tesseract
+ocr_engine: microsoft_cv
 lowercase_expected: false
 lowercase_input: false
-train_strategy: all_items
+train_strategy: concat
 dev_strategy: concat
 test_strategy: concat
 augment_tokens_from_file: ''
@@ -33,7 +33,3 @@ img_matrix_order: 0
 processes: 1
 imap_chunksize: 100
 skip_text_tokens: false
-target_image_height: 1024
-target_image_width: 1024
-target_image_channels: 3
-image_size_divisibility: 64

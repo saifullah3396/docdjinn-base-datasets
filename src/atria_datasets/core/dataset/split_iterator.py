@@ -161,6 +161,9 @@ class SplitIterator(Sequence[T_BaseDataInstance], RepresentationMixin):
                         yield self._tf(index, sample)
                     else:
                         yield index, sample
+
+                    if self._max_len is not None and index + 1 >= self._max_len:
+                        break
             else:
                 for index in range(len(self)):
                     yield self[index]

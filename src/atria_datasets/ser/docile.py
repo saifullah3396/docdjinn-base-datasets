@@ -153,8 +153,11 @@ class Docile(AtriaDocumentDataset):
 
     def _download_urls(self) -> list[str]:
         if self.config.synthetic:
-            return _SYNTHETIC_DATA_URLS
-        return _DATA_URLS
+            return [
+                url.format(access_token=self._access_token)
+                for url in _SYNTHETIC_DATA_URLS
+            ]
+        return [url.format(access_token=self._access_token) for url in _DATA_URLS]
 
     def _available_splits(self) -> list[DatasetSplitType]:
         return [DatasetSplitType.train, DatasetSplitType.validation]

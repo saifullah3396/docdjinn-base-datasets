@@ -43,9 +43,12 @@ _LICENSE = "Apache-2.0 license"
 
 _CLASSES = ["table"]
 
-_URLS = [
-    # Add actual download URLs here when available
-]
+_DATA_URLS = {
+    "icdar2019": (
+        "https://drive.google.com/file/d/1ES4TcZ4pU5-3mtSx7gQw49YNwgQjGH1n/view?usp=sharing",
+        ".zip",
+    )
+}
 
 
 class SplitIterator:
@@ -114,7 +117,7 @@ class SplitIterator:
 )
 class Icdar2019(AtriaDocumentDataset):
     def _download_urls(self) -> list[str]:
-        return _URLS
+        return _DATA_URLS
 
     def _metadata(self) -> DatasetMetadata:
         return DatasetMetadata(

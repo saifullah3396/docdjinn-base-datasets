@@ -528,13 +528,16 @@ class AtriaDataset(
         Note:
             This method is idempotent - subsequent calls will not re-download files.
         """
-        if self.__requires_access_token__ and access_token is None:
-            logger.warning(
-                "access_token must be passed to download this dataset. "
-                f"See `{self.metadata.homepage}` for instructions to get the access token"
-            )
-            return
         if not self._downloads_prepared:
+            if self.__requires_access_token__:
+                if access_token is not None:
+                    self._access_token = access_token
+                else:
+                    raise RuntimeError(
+                        "access_token must be passed to download this dataset. "
+                        f"See `{self.metadata.homepage}` for instructions to get the access token"
+                    )
+
             if self._custom_download.__func__ is not AtriaDataset._custom_download:
                 self._downloaded_files = self._custom_download(data_dir, access_token)
             else:
@@ -704,7 +707,10 @@ class AtriaDataset(
                 self.prepare_downloads(
                     data_dir=str(self._data_dir), access_token=access_token
                 )
-                logger.info(f"Caching split [{split.value}] to {self._storage_dir}")
+                max_len = self.get_max_split_samples(split)
+                logger.info(
+                    f"Caching split [{split.value}] to {self._storage_dir} with max_len={self.get_max_split_samples(split)}"
+                )
                 storage_manager.write_split(
                     split_iterator=SplitIterator(
                         split=split,
@@ -716,7 +722,7 @@ class AtriaDataset(
                         if preprocess_transform is None
                         else preprocess_transform,
                         base_iterator=self._split_iterator(split, self._data_dir),
-                        max_len=self.get_max_split_samples(split),
+                        max_len=max_len,
                         load_from_disk=cache_artifacts,
                     )
                 )

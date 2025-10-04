@@ -58,7 +58,7 @@ class BenchmarkDataset(Dataset):
                 tool2cf = {c["tool_name"]: c for c in doc_content_dict["contents"]}
                 if self.ocr not in tool2cf:
                     logging.warning(
-                        f"No common format for {doc_dict['name']}. Skipping it"
+                        f"No common format for {doc_dict['name']}. Formats found: {list(tool2cf.keys())}. Skipping it"
                     )
                     continue
                 if not tool2cf[self.ocr]["common_format"]["tokens"]:
