@@ -21,13 +21,11 @@ from typing import TYPE_CHECKING
 
 import tqdm
 from atria_core.logger.logger import get_logger
-
 from atria_datasets.core.storage.online_shard_writer_actor import OnlineShardWriter
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
     from atria_core.types import BaseDataInstance, DatasetSplitType
-
     from atria_datasets.core.dataset.atria_dataset import SplitIterator
 
 

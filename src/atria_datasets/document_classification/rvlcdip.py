@@ -120,7 +120,6 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
             load_ocr=True,
             max_train_samples=1000,
             max_validation_samples=1000,
-            max_test_samples=1000,
         ),
     ],
 )

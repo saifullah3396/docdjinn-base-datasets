@@ -44,7 +44,7 @@ _LICENSE = "Apache-2.0 license"
 _CLASSES = ["table"]
 
 _DATA_URLS = {
-    "icdar2019": (
+    "data": (
         "https://drive.google.com/file/d/1ES4TcZ4pU5-3mtSx7gQw49YNwgQjGH1n/view?usp=sharing",
         ".zip",
     )
@@ -59,13 +59,14 @@ class SplitIterator:
         self.data_dir = Path(data_dir)
         self.config = config
 
-        if not (self.data_dir / self.config.config_name / split.value).exists():
+        base_data_dir = self.data_dir / "data" / "icdar2019" / self.config.config_name
+        if not (base_data_dir / split.value).exists():
             raise FileNotFoundError(
-                f"Split {split.value} does not exist in {self.data_dir / self.config.config_name}"
+                f"Split {split.value} does not exist in {base_data_dir}"
             )
 
-        self.image_dir = self.data_dir / self.config.config_name / split.value
-        self.ann_file = self.data_dir / self.config.config_name / f"{split.value}.json"
+        self.image_dir = base_data_dir / split.value
+        self.ann_file = base_data_dir / f"{split.value}.json"
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
         samples_list, category_names = _load_coco_json(
@@ -81,9 +82,9 @@ class SplitIterator:
                     label=Label(
                         value=ann["category_id"], name=_CLASSES[ann["category_id"]]
                     ),
-                    bbox=BoundingBox(
-                        value=ann["bbox"], mode=BoundingBoxMode.XYWH
-                    ).switch_mode(),
+                    bbox=BoundingBox(value=ann["bbox"], mode=BoundingBoxMode.XYWH)
+                    .switch_mode()
+                    .normalize(width=sample["width"], height=sample["height"]),
                     segmentation=ann["segmentation"],
                     iscrowd=bool(ann["iscrowd"]),
                 )

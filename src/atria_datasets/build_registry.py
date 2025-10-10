@@ -22,6 +22,7 @@ from atria_datasets.table_extraction.fintabnet import *  # noqa
 from atria_datasets.table_extraction.icdar2013 import *  # noqa
 from atria_datasets.table_extraction.pubtables1m import *  # noqa
 from atria_datasets.vqa.docvqa import *  # noqa
+from atria_datasets.vqa.due import *  # noqa
 
 if __name__ == "__main__":
     config_path = Path(__file__).parent / "conf"

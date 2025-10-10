@@ -12,6 +12,7 @@ from atria_core.types import (
     Label,
     LayoutAnalysisAnnotation,
 )
+from atria_core.types.generic.annotated_object import AnnotatedObjectList
 
 from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_huggingface_dataset import (
@@ -29,7 +30,7 @@ _DOC_CLASSES = [
 ]
 
 _LAYOUT_CLASSES = [
-    "Caption ",
+    "Caption",
     "Footnote",
     "Formula",
     "List-item",
@@ -47,8 +48,15 @@ _LAYOUT_CLASSES = [
     "doclaynet",
     configs=[
         AtriaHuggingfaceDatasetConfig(
-            hf_repo="ds4sd/DocLayNet", hf_config_name="2022.08"
-        )
+            config_name="default", hf_repo="ds4sd/DocLayNet", hf_config_name="2022.08"
+        ),
+        AtriaHuggingfaceDatasetConfig(
+            config_name="1k",
+            hf_repo="ds4sd/DocLayNet",
+            hf_config_name="2022.08",
+            max_train_samples=1000,
+            max_validation_samples=1000,
+        ),
     ],
 )
 class DocLayNet(AtriaHuggingfaceDocumentDataset):
@@ -73,20 +81,24 @@ class DocLayNet(AtriaHuggingfaceDocumentDataset):
             if ann["area"] <= 0 or bbox.width < 1 or bbox.height < 1:
                 continue
 
-            category_idx = ann["category_id"] - 1
+            category_idx = ann[
+                "category_id"
+            ]  # doclaynet already does category id -1 so its between 0 and len-1
             if category_idx < 0 or category_idx > len(_LAYOUT_CLASSES):
                 continue
 
             annotated_objects.append(
                 AnnotatedObject(
                     label=Label(value=category_idx, name=_LAYOUT_CLASSES[category_idx]),
-                    bbox=bbox.switch_mode(),
+                    bbox=bbox.switch_mode().normalize(
+                        width=image.width, height=image.height
+                    ),
                     segmentation=ann["segmentation"],
                     iscrowd=ann["iscrowd"],
                 )
             )
         return DocumentInstance(
-            sample_id=sample["image_id"],
+            sample_id=f"sample_{sample['image_id']}",
             image=image,
             annotations=[
                 ClassificationAnnotation(
@@ -95,6 +107,8 @@ class DocLayNet(AtriaHuggingfaceDocumentDataset):
                         name=sample["doc_category"],
                     )
                 ),
-                LayoutAnalysisAnnotation(annotated_objects=annotated_objects),
+                LayoutAnalysisAnnotation(
+                    annotated_objects=AnnotatedObjectList.from_list(annotated_objects)
+                ),
             ],
         )

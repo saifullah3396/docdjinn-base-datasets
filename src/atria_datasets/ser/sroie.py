@@ -86,7 +86,7 @@ class SplitIterator:
 
         return (
             DocumentContent(
-                words=words, word_bboxes=BoundingBoxList(value=word_bboxes)
+                words=words, word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True)
             ),
             EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(

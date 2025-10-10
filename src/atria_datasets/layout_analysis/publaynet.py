@@ -2,6 +2,7 @@ from typing import Any
 
 from atria_core.types import (
     AnnotatedObject,
+    AnnotatedObjectList,
     BoundingBox,
     BoundingBoxMode,
     DatasetLabels,
@@ -25,7 +26,13 @@ _CLASSES = ["text", "title", "list", "table", "figure"]
     configs=[
         AtriaHuggingfaceDatasetConfig(
             hf_repo="jordanparker6/publaynet", hf_config_name="default"
-        )
+        ),
+        AtriaHuggingfaceDatasetConfig(
+            config_name="1k",
+            hf_repo="jordanparker6/publaynet",
+            hf_config_name="default",
+            max_train_samples=1000,  # publay val set is same as test set
+        ),
     ],
 )
 class PubLayNet(AtriaHuggingfaceDocumentDataset):
@@ -55,15 +62,20 @@ class PubLayNet(AtriaHuggingfaceDocumentDataset):
             annotated_objects.append(
                 AnnotatedObject(
                     label=Label(value=category_idx, name=_CLASSES[category_idx]),
-                    bbox=BoundingBox(
-                        value=ann["bbox"], mode=BoundingBoxMode.XYWH
-                    ).switch_mode(),
+                    bbox=BoundingBox(value=ann["bbox"], mode=BoundingBoxMode.XYWH)
+                    .switch_mode()
+                    .normalize(width=image.width, height=image.height),
                     segmentation=ann["segmentation"],
-                    iscrowd=ann["iscrowd"],
+                    iscrowd=bool(ann["iscrowd"]),
                 )
             )
+
         return DocumentInstance(
-            sample_id=sample["image_id"],
+            sample_id=str(sample["id"]),
             image=image,
-            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
+            annotations=[
+                LayoutAnalysisAnnotation(
+                    annotated_objects=AnnotatedObjectList.from_list(annotated_objects)
+                )
+            ],
         )

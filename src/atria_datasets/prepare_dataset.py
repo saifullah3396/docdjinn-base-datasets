@@ -58,7 +58,7 @@ def main(
     cache_artifacts: bool = True,
     access_token: str | None = None,
     overwrite_existing_cached: bool = False,
-    num_processes: int = 1,
+    num_processes: int = 8,
     upload_to_hub: bool = False,
     overwrite_in_hub: bool = True,
     visualize: bool = False,
@@ -80,11 +80,11 @@ def main(
         cached_storage_type=FileStorageType.MSGPACK,
         cache_artifacts=cache_artifacts,
         dataset_load_mode=DatasetLoadingMode.local_streaming,
-        build_kwargs={
-            "max_train_samples": max_samples,
-            "max_test_samples": max_samples,
-            "max_validation_samples": max_samples,
-        },
+        # build_kwargs={
+        #     "max_train_samples": max_samples,
+        #     "max_test_samples": max_samples,
+        #     "max_validation_samples": max_samples,
+        # },
     )
     logger.info(f"Loaded dataset:\n{dataset}")
 

@@ -16,7 +16,7 @@ dependencies = [
     "atria-registry",
     "boto3>=1.39.4",
     "datadings",
-    "datasets>=3.5.0",
+    "datasets==3.4",
     "deltalake>=1.0.2",
     "docile-benchmark>=0.3.4",
     "editdistance>=0.8.1",

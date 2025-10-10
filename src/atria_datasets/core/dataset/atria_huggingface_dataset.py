@@ -29,14 +29,19 @@ License: MIT
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic
 
+import aiohttp
 from atria_core.logger import get_logger
 from atria_core.types import DocumentInstance, ImageInstance
 
-from atria_datasets.core.dataset.atria_dataset import AtriaDataset, AtriaDatasetConfig
+from atria_datasets.core.dataset.atria_dataset import (
+    AtriaDataset,
+    AtriaDatasetConfig,
+    DefaultOutputTransformer,
+)
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_datasets.core.typing.common import T_BaseDataInstance
 
@@ -145,8 +150,10 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
     def _prepare_cached_splits(
         self,
         access_token: str | None = None,
-        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
-        overwrite_existing: bool = False,
+        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
+        preprocess_transform: Callable | None = None,
+        cache_artifacts: bool = True,
+        max_cache_image_size: int = 1024,
     ) -> None:
         """Prepare cached splits using DeltaLake storage."""
 
@@ -159,7 +166,7 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
         info_saved = False
         for split in list(DatasetSplitType):
             split_exists = storage_manager.split_exists(split=split)
-            if split_exists and overwrite_existing:
+            if split_exists and self._overwrite_existing_cached:
                 logger.warning(f"Overwriting existing cached split {split.value}")
                 storage_manager.purge_split(split)
                 split_exists = False
@@ -178,6 +185,11 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
                         split=split,
                         data_model=self.data_model,
                         input_transform=self._input_transform,
+                        output_transform=DefaultOutputTransformer(
+                            self._data_dir, max_cache_image_size=max_cache_image_size
+                        )
+                        if preprocess_transform is None
+                        else preprocess_transform,
                         base_iterator=self._split_iterator(split, self._data_dir),
                         max_len=self.get_max_split_samples(split),
                     )
@@ -212,7 +224,12 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
             from datasets import load_dataset_builder
 
             self._dataset_builder = load_dataset_builder(
-                self.config.hf_repo, name=self.config.hf_config_name, cache_dir=data_dir
+                self.config.hf_repo,
+                name=self.config.hf_config_name,
+                cache_dir=data_dir,
+                storage_options={
+                    "client_kwargs": {"timeout": aiohttp.ClientTimeout(total=3600)}
+                },
             )
         return self._dataset_builder
 
@@ -250,6 +267,9 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
                     force_extract=False,
                     use_etag=False,
                     delete_extracted=False,
+                    storage_options={
+                        "client_kwargs": {"timeout": aiohttp.ClientTimeout(total=3600)}
+                    },
                 ),
                 record_checksums=False,
             )
@@ -264,7 +284,11 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
                     force_extract=False,
                     use_etag=False,
                     delete_extracted=False,
+                    storage_options={
+                        "client_kwargs": {"timeout": aiohttp.ClientTimeout(total=3600)}
+                    },
                 ),
+                record_checksums=False,
             )
 
     def _split_iterator(  # type: ignore
@@ -280,7 +304,6 @@ class AtriaHuggingfaceDataset(AtriaDataset, Generic[T_BaseDataInstance]):
         Yields:
             BaseDataInstanceType: The dataset instances for the specified split.
         """
-
         return self._prepare_dataset_builder(data_dir)._as_streaming_dataset_single(
             self._hf_split_generators[split.value]
         )

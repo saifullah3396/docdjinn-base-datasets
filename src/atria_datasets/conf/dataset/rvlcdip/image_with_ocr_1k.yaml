@@ -4,6 +4,6 @@ dataset_name: rvlcdip
 config_name: image_with_ocr_1k
 max_train_samples: 1000
 max_validation_samples: 1000
-max_test_samples: 1000
+max_test_samples: null
 load_ocr: true
 type: default

@@ -116,6 +116,9 @@ class SplitIterator:
         for row in self.dataset:
             row["ner_tags"] = self._remap_labels_to_task_labels(row["ner_tags"])
             row["tokens"] = list(row["tokens"])
+            bboxes = [
+                [x / 1000.0 for x in box] for box in row["bboxes"]
+            ]
             yield DocumentInstance(
                 sample_id=str(row["id"]),
                 image=Image(
@@ -123,7 +126,7 @@ class SplitIterator:
                 ),
                 content=DocumentContent(
                     words=row["tokens"],
-                    word_bboxes=BoundingBoxList(value=row["bboxes"]),
+                    word_bboxes=BoundingBoxList(value=bboxes, normalized=True),
                 ),
                 annotations=[
                     EntityLabelingAnnotation(

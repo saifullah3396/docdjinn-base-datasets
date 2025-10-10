@@ -173,9 +173,9 @@ class SplitIterator:
             annotation["meta"]["image_id"],
             DocumentContent(
                 words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes),
+                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True),
                 word_segment_level_bboxes=BoundingBoxList(
-                    value=word_segment_level_bboxes
+                    value=word_segment_level_bboxes, normalized=True
                 ),
             ),
             EntityLabelingAnnotation(
