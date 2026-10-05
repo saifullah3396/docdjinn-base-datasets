@@ -20,7 +20,7 @@ from atria_core.types.generic.annotations import ExtractiveQAAnnotation
 from atria_core.types.generic.document_content import DocumentContent
 from datasets import load_from_disk
 
-from atria_datasets import DATASET, AtriaDocumentDataset
+from atria_datasets import AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
 
 from .utilities import (
@@ -353,7 +353,6 @@ class SplitIterator:
         yield from self.preprocessed_dataset
 
 
-@DATASET.register("docvqa")
 class DocVQA(AtriaDocumentDataset):
     __config_cls__ = DocVQAConfig
 

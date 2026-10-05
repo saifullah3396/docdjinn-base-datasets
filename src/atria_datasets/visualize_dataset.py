@@ -80,8 +80,6 @@ def main(
     access_token: str | None = None,
     overwrite_existing_cached: bool = False,
     num_processes: int = 8,
-    upload_to_hub: bool = False,
-    overwrite_in_hub: bool = True,
     visualize: bool = True,
     split_name: str = "train",
     num_samples: int = 16,
@@ -89,7 +87,7 @@ def main(
 ):
     from atria_datasets import AtriaDataset
 
-    dataset = AtriaDataset.load_from_registry(
+    dataset = AtriaDataset.load_by_name(
         name=name,
         data_dir=data_dir + "/" + name.split("/")[0],
         overwrite_existing_cached=overwrite_existing_cached,
@@ -104,9 +102,6 @@ def main(
     if visualize:
         logger.info(f"Visualizing {num_samples} samples from {split_name} split")
         visualize_samples(dataset, split_name, num_samples, grid_cols)
-
-    if upload_to_hub:
-        dataset.upload_to_hub(overwrite_existing=overwrite_in_hub)
 
 
 if __name__ == "__main__":

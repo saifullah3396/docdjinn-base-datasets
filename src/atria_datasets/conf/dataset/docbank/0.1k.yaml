@@ -1,8 +1,0 @@
-_target_: atria_datasets.ser.docbank.DocBankLER
-_partial_: false
-dataset_name: docbank
-config_name: 0.1k
-max_train_samples: 100
-max_validation_samples: 100
-max_test_samples: 100
-max_words_per_sample: 4000

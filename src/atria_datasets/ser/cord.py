@@ -17,7 +17,6 @@ from atria_core.types import (
     LabelList,
 )
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import AtriaDocumentDataset
 
 from .utilities import _get_line_bboxes, _normalize_bbox
@@ -207,7 +206,6 @@ class SplitIterator:
             )
 
 
-@DATASET.register("cord")
 class CORD(AtriaDocumentDataset):
     def _download_urls(self) -> list[str]:
         return _DATA_URLS

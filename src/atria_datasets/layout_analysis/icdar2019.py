@@ -15,7 +15,7 @@ from atria_core.types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, AtriaDocumentDataset
+from atria_datasets import AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
 
 from .utilities import _load_coco_json
@@ -109,13 +109,6 @@ class SplitIterator:
         return len(samples_list)
 
 
-@DATASET.register(
-    "icdar2019",
-    configs=[
-        AtriaDatasetConfig(config_name="trackA_modern"),
-        AtriaDatasetConfig(config_name="trackA_archival"),
-    ],
-)
 class Icdar2019(AtriaDocumentDataset):
     def _download_urls(self) -> list[str]:
         return _DATA_URLS

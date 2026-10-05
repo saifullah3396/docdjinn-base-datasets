@@ -16,7 +16,6 @@ from atria_core.types import (
     LabelList,
 )
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import AtriaDocumentDataset
 
 from .utilities import _normalize_bbox
@@ -86,7 +85,8 @@ class SplitIterator:
 
         return (
             DocumentContent(
-                words=words, word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True)
+                words=words,
+                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True),
             ),
             EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
@@ -116,7 +116,6 @@ class SplitIterator:
         return len(os.listdir(self.image_dir))
 
 
-@DATASET.register("sroie")
 class SROIE(AtriaDocumentDataset):
     def _download_urls(self) -> dict[str, tuple[str, str]]:
         return _DATA_URLS

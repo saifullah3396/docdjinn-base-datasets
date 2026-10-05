@@ -13,7 +13,7 @@ from atria_core.types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, AtriaDocumentDataset
+from atria_datasets import AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
 
 from .utilities import read_pascal_voc
@@ -192,23 +192,6 @@ class PubTables1MConfig(AtriaDatasetConfig):
     task: str = "structure"  # "structure" or "detection"
 
 
-@DATASET.register(
-    "pubtables1m",
-    configs=[
-        PubTables1MConfig(
-            config_name="detection_1k",
-            task="detection",
-            max_train_samples=1000,
-            max_validation_samples=1000,
-        ),
-        PubTables1MConfig(
-            config_name="structure_1k",
-            task="structure",
-            max_train_samples=1000,
-            max_validation_samples=1000,
-        ),
-    ],
-)
 class PubTables1M(AtriaDocumentDataset):
     __config_cls__ = PubTables1MConfig
 

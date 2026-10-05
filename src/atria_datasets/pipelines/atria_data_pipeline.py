@@ -41,7 +41,6 @@ from atria_datasets.pipelines.utilities import (
     default_collate,
     mmdet_pseudo_collate,
 )
-from atria_datasets.registry import DATA_PIPELINE
 
 if TYPE_CHECKING:
     from torch.utils.data import DataLoader, Dataset  # type: ignore
@@ -79,7 +78,6 @@ class DataloaderConfig:
         return ", ".join(f"{key}={value}" for key, value in config.items())
 
 
-@DATA_PIPELINE.register("default", defaults=["_self_", {"/dataset@dataset": None}])
 class AtriaDataPipeline(RepresentationMixin):
     """
     A configurable data pipeline for managing datasets and dataloaders.

@@ -337,12 +337,9 @@ def better_subfinder(words_list, answer_query, try_hard=True):
                 # or n_pieces < len(answer_list) / 2
                 or n_pieces > len(answer_list) * 2 + 2
             ):
-                # print(f'  discarding', n_pieces, len(answer_list))
-                # print(f'  discarding [{start_pos}:{end_pos}]', n_pieces, len(answer_list))
                 continue
 
             piece = words_list[start_pos : end_pos + 1]
-            # print('checking piece:', piece)
 
             # try to detokenize
             detok_variants = []
@@ -357,13 +354,11 @@ def better_subfinder(words_list, answer_query, try_hard=True):
                 if diff == 0:
                     break  # perfect match, no need to continue
 
-                # print(' detok piece:', detok_piece, 'diff:', diff)
                 if (
                     detok_variant == answer_query
                     or diff <= 0.25
                     or answer_query in detok_variant
                 ):
-                    # print(f'  approx match: {detok_variant}, diff: {diff}')
                     smart_matches.append((piece, diff, start_pos, end_pos))
                     break
 
@@ -392,41 +387,21 @@ def locate_encoded_answer(encoding, batch_index, word_idx_start, word_idx_end):
         token_end_index -= 1
 
     word_ids = encoding.word_ids(batch_index)[token_start_index : token_end_index + 1]
-    print(
-        "sliced word ids from",
-        token_start_index,
-        "to",
-        token_end_index + 1,
-        "out of",
-        0,
-        len(encoding.word_ids(batch_index)),
-    )
-    # print('trying to match start and end tokens:', word_ids, word_idx_start, word_idx_end)
-    # decoded_words = tokenizer.decode(
-    #     encoding.input_ids[batch_index][token_start_index : token_end_index + 1]
-    # )
-    # print('decoded_words:', decoded_words)
-    # all_words = tokenizer.decode(encoding.input_ids[batch_index])
-    # print('all_words:', all_words)
     found_start = False
     found_end = False
     for id in word_ids:
         if id == word_idx_start:
-            print(" start:", token_start_index)
             found_start = True
             break
         else:
             token_start_index += 1
-            # print(' start id did not match:', id, word_idx_start)
 
     for id in word_ids[::-1]:
         if id == word_idx_end:
-            print(" end:", token_end_index)
             found_end = True
             break
         else:
             token_end_index -= 1
-            # print(' end id did not match:', id, word_idx_end)
 
     if not found_start or not found_end:
         return -1, -1
@@ -508,7 +483,6 @@ def extract_start_end_index_v2(current_answers, words):
                     break  # break inner loop
                 # drop the ith character from the answer
                 answer_i = current_ans[:i] + current_ans[i + 1 :]
-                # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
                 # check if we can find this one in the context
                 match, word_idx_start, word_idx_end = better_subfinder(
                     words, answer_i.lower(), try_hard=True

@@ -15,7 +15,6 @@ from atria_core.types import (
     LabelList,
 )
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import (
     AtriaDatasetConfig,
     AtriaDocumentDataset,
@@ -134,7 +133,8 @@ class SplitIterator:
 
         return (
             DocumentContent(
-                words=words, word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True)
+                words=words,
+                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True),
             ),
             EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
@@ -172,7 +172,6 @@ class SplitIterator:
             return sum(1 for _ in f)
 
 
-@DATASET.register("wild_receipts")
 class WildReceipts(AtriaDocumentDataset):
     __config_cls__ = WildReceiptsConfig
 

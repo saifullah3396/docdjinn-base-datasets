@@ -14,7 +14,7 @@ from atria_core.types.generic.annotations import GenerativeQAAnnotation
 from atria_core.types.generic.document_content import DocumentContent
 from atria_core.types.generic.question_answer_pair import GenerativeQAItem
 
-from atria_datasets import DATASET, AtriaDocumentDataset
+from atria_datasets import AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
 
 logger = get_logger(__name__)
@@ -205,22 +205,6 @@ class SplitIterator:
         return len(self._dataset)
 
 
-@DATASET.register(
-    "due_benchmark",
-    configs=[
-        DueBenchmarkConfig(config_name="DocVQA", train_strategy="all_items"),
-        DueBenchmarkConfig(
-            config_name="PWC", train_strategy="concat", ocr_engine="tesseract"
-        ),
-        DueBenchmarkConfig(config_name="DeepForm", train_strategy="all_items"),
-        DueBenchmarkConfig(
-            config_name="TabFact", train_strategy="all_items", ocr_engine="tesseract"
-        ),
-        DueBenchmarkConfig(config_name="WikiTableQuestions", train_strategy="concat"),
-        DueBenchmarkConfig(config_name="InfographicsVQA", train_strategy="all_items"),
-        DueBenchmarkConfig(config_name="KleisterCharity", train_strategy="all_items"),
-    ],
-)
 class DueBenchmark(AtriaDocumentDataset):
     __config_cls__ = DueBenchmarkConfig
 

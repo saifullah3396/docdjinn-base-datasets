@@ -1,9 +1,0 @@
-_target_: atria_datasets.image_classification.mnist.MNIST
-_partial_: false
-dataset_name: mnist
-config_name: mnist
-max_train_samples: null
-max_validation_samples: null
-max_test_samples: null
-hf_repo: ylecun/mnist
-hf_config_name: mnist

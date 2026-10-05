@@ -1,9 +1,0 @@
-_target_: atria_datasets.document_classification.rvlcdip.RvlCdip
-_partial_: false
-dataset_name: rvlcdip
-config_name: image_with_ocr
-max_train_samples: null
-max_validation_samples: null
-max_test_samples: null
-load_ocr: true
-type: default

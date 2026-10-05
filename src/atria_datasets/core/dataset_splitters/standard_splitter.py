@@ -13,7 +13,6 @@ Dependencies:
     - typing: For type annotations.
     - torch.utils.data: For dataset splitting utilities.
     - atria_core.logger.logger: For logging utilities.
-    - atria_registry: For registering dataset splitters.
     - atria_datasets.core.datasets.atria_dataset: For the base dataset class.
 
 Author: Your Name (your.email@example.com)

@@ -19,7 +19,7 @@ from atria_core.types.generic.question_answer_pair import ExtractiveQAPair
 from pdf2image import convert_from_path
 from PIL.Image import Image as PILImage
 
-from atria_datasets import DATASET, AtriaDocumentDataset
+from atria_datasets import AtriaDocumentDataset
 from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
 
 logger = get_logger(__name__)
@@ -255,18 +255,6 @@ class SplitIterator:
         return len(self._benchmark_dataset)
 
 
-@DATASET.register(
-    "due_benchmark",
-    configs=[
-        DueBenchmarkExtractiveQAConfig(config_name="ExDocVQA"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExPWC", ocr_engine="tesseract"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExDeepForm"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExTabFact", ocr_engine="tesseract"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExWikiTableQuestions"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExInfographicsVQA"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExKleisterCharity"),
-    ],
-)
 class DueBenchmarkExtractiveQA(AtriaDocumentDataset):
     __config_cls__ = DueBenchmarkExtractiveQAConfig
 
@@ -346,26 +334,6 @@ class DueBenchmarkExtractiveQA(AtriaDocumentDataset):
             sample["page_size"],
             self.config.image_dpi,
         )
-        # print("sample", sample["sample_id"])
-        # print("page idx", sample["page_idx"])
-        # print("image size", page_image)
-        # print("sample", sample["tokens_in_page"])
-        # print('answer_start_indices',sample["annotations"][0]['answer_start_indices'])
-        # print('answer_end_indices',sample["annotations"][0]['answer_end_indices'])
-        # print("question", sample["annotations"][0]["question"])
-        # print("answers", sample["annotations"][0]["answers"])
-        # if sample["annotations"][0]["answer_start_indices"][0] > -1:
-        #     answer_texts = [
-        #         sample["tokens_in_page"][i]
-        #         for i in range(
-        #             sample["annotations"][0]["answer_start_indices"][0],
-        #             sample["annotations"][0]["answer_end_indices"][0] + 1,
-        #         )
-        #     ]
-        #     print("test answer", " ".join(answer_texts))
-
-        # resize image to max height and width
-        # print('sample["annotations"]',sample["annotations"])
         doc = DocumentInstance(
             sample_id=sample["sample_id"] + f"-{uuid.uuid4().hex[:4]}",
             page_id=sample["page_idx"],
@@ -394,51 +362,5 @@ class DueBenchmarkExtractiveQA(AtriaDocumentDataset):
                 )
             ],
         )
-
-        # # draw bounding boxes on image for each word
-        # import matplotlib.patches as patches
-        # import matplotlib.pyplot as plt
-
-        # # Create figure and axis for drawing bounding boxes
-        # fig, ax = plt.subplots(1, figsize=(12, 8))
-        # ax.imshow(page_image)
-
-        # # Draw bounding boxes for each word
-        # for i, bbox in enumerate(doc.content.word_bboxes.value):
-        #     # bbox format: [x_min, y_min, x_max, y_max] (normalized)
-        #     x_min = bbox[0] * page_image.width
-        #     y_min = bbox[1] * page_image.height
-        #     width = (bbox[2] - bbox[0]) * page_image.width
-        #     height = (bbox[3] - bbox[1]) * page_image.height
-
-        #     # Create rectangle patch
-        #     rect = patches.Rectangle(
-        #         (x_min, y_min),
-        #         width,
-        #         height,
-        #         linewidth=1,
-        #         edgecolor="red",
-        #         facecolor="none",
-        #         alpha=0.7,
-        #     )
-        #     ax.add_patch(rect)
-
-        # ax.set_xlim(0, page_image.width)
-        # ax.set_ylim(page_image.height, 0)  # Flip y-axis for image coordinates
-        # ax.axis("off")
-
-        # # Create output directory if it doesn't exist
-        # output_dir = Path("debug_images")
-        # output_dir.mkdir(exist_ok=True)
-
-        # # Save the image with bounding boxes
-        # output_path = (
-        #     output_dir / f"{sample['sample_id']}_page_{sample['page_idx']}_bbox.png"
-        # )
-        # plt.tight_layout()
-        # plt.savefig(output_path, dpi=150, bbox_inches="tight")
-        # plt.close()
-
-        # logger.info(f"Saved image with bounding boxes to {output_path}")
 
         return doc

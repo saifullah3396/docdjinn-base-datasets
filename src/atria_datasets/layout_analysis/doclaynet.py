@@ -14,9 +14,7 @@ from atria_core.types import (
 )
 from atria_core.types.generic.annotated_object import AnnotatedObjectList
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_huggingface_dataset import (
-    AtriaHuggingfaceDatasetConfig,
     AtriaHuggingfaceDocumentDataset,
 )
 
@@ -44,21 +42,6 @@ _LAYOUT_CLASSES = [
 ]
 
 
-@DATASET.register(
-    "doclaynet",
-    configs=[
-        AtriaHuggingfaceDatasetConfig(
-            config_name="default", hf_repo="ds4sd/DocLayNet", hf_config_name="2022.08"
-        ),
-        AtriaHuggingfaceDatasetConfig(
-            config_name="1k",
-            hf_repo="ds4sd/DocLayNet",
-            hf_config_name="2022.08",
-            max_train_samples=1000,
-            max_validation_samples=1000,
-        ),
-    ],
-)
 class DocLayNet(AtriaHuggingfaceDocumentDataset):
     def _metadata(self) -> DatasetMetadata:
         metadata = super()._metadata()

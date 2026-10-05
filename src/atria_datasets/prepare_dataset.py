@@ -59,8 +59,6 @@ def main(
     access_token: str | None = None,
     overwrite_existing_cached: bool = False,
     num_processes: int = 8,
-    upload_to_hub: bool = False,
-    overwrite_in_hub: bool = True,
     visualize: bool = False,
     visualized_split: str = "train",
     n_visualized_samples: int = 16,
@@ -70,7 +68,7 @@ def main(
 ):
     from atria_datasets import AtriaDataset
 
-    dataset = AtriaDataset.load_from_registry(
+    dataset = AtriaDataset.load_by_name(
         name=name,
         data_dir=data_dir + "/" + name.split("/")[0],
         overwrite_existing_cached=overwrite_existing_cached,
@@ -80,11 +78,13 @@ def main(
         cached_storage_type=FileStorageType.MSGPACK,
         cache_artifacts=cache_artifacts,
         dataset_load_mode=DatasetLoadingMode.local_streaming,
-        # build_kwargs={
-        #     "max_train_samples": max_samples,
-        #     "max_test_samples": max_samples,
-        #     "max_validation_samples": max_samples,
-        # },
+        build_kwargs={
+            "max_train_samples": max_samples,
+            "max_test_samples": max_samples,
+            "max_validation_samples": max_samples,
+        }
+        if max_samples is not None
+        else None,
     )
     logger.info(f"Loaded dataset:\n{dataset}")
 
@@ -99,9 +99,6 @@ def main(
             f"Visualizing {n_visualized_samples} samples from {visualized_split} split"
         )
         visualize_samples(dataset, visualized_split, n_visualized_samples, grid_cols)
-
-    if upload_to_hub:
-        dataset.upload_to_hub(overwrite_existing=overwrite_in_hub)
 
 
 if __name__ == "__main__":

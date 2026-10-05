@@ -1,8 +1,0 @@
-_target_: atria_datasets.table_extraction.pubtables1m.PubTables1M
-_partial_: false
-dataset_name: pubtables1m
-config_name: detection_1k
-max_train_samples: 1000
-max_validation_samples: 1000
-max_test_samples: null
-task: detection

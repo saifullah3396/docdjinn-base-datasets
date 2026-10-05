@@ -13,7 +13,6 @@ Dependencies:
     - collections.defaultdict: For managing grouped buffers.
     - torch.utils.data.sampler.BatchSampler: Base class for batch samplers.
     - torch.utils.data.sampler.Sampler: Base class for samplers.
-    - atria_registry: For registering the batch sampler.
     - atria_datasets.core.batch_samplers.utilities: Utility functions for sampling.
 
 Author: Your Name (your.email@example.com)
@@ -24,11 +23,9 @@ License: MIT
 
 from collections import defaultdict
 
-from atria_registry import BATCH_SAMPLER
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 
-@BATCH_SAMPLER.register("group_batch_sampler")
 class GroupBatchSampler(BatchSampler):
     """
     A batch sampler that groups input samples based on predefined group IDs.

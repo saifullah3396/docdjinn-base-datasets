@@ -52,13 +52,11 @@
     "python.analysis.include": [
         "../atria_core/src",
         "../atria_datasets/src",
-        "../atria_registry/src",
 
     ],
     "python.analysis.extraPaths": [
         "../atria_core/src",
         "../atria_datasets/src",
-        "../atria_registry/src",
     ],
     "python.defaultInterpreterPath": "./.venv/bin/python",
 }

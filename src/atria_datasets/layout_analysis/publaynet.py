@@ -13,28 +13,11 @@ from atria_core.types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, AtriaHuggingfaceDocumentDataset
-from atria_datasets.core.dataset.atria_huggingface_dataset import (
-    AtriaHuggingfaceDatasetConfig,
-)
+from atria_datasets import AtriaHuggingfaceDocumentDataset
 
 _CLASSES = ["text", "title", "list", "table", "figure"]
 
 
-@DATASET.register(
-    "publaynet",
-    configs=[
-        AtriaHuggingfaceDatasetConfig(
-            hf_repo="jordanparker6/publaynet", hf_config_name="default"
-        ),
-        AtriaHuggingfaceDatasetConfig(
-            config_name="1k",
-            hf_repo="jordanparker6/publaynet",
-            hf_config_name="default",
-            max_train_samples=1000,  # publay val set is same as test set
-        ),
-    ],
-)
 class PubLayNet(AtriaHuggingfaceDocumentDataset):
     def _metadata(self) -> DatasetMetadata:
         metadata = super()._metadata()

@@ -20,7 +20,6 @@ Dependencies:
     - tqdm: For progress tracking.
     - webdataset: For handling WebDataset format.
     - atria_core.logger: For logging utilities.
-    - atria_registry: For registering storage managers.
     - atria_datasets.core.datasets: For dataset-related classes and metadata.
     - atria_datasets.core.storage.dataset_storage_manager: For the base storage manager class.
     - atria_datasets.core.storage.shard_writer_actor: For managing shard writers.

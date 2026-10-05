@@ -18,7 +18,6 @@ from atria_core.types.generic.annotations import EntityLabelingAnnotation
 from atria_core.types.generic.document_content import DocumentContent
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Dataset
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import (
     AtriaDatasetConfig,
     AtriaDocumentDataset,
@@ -116,9 +115,7 @@ class SplitIterator:
         for row in self.dataset:
             row["ner_tags"] = self._remap_labels_to_task_labels(row["ner_tags"])
             row["tokens"] = list(row["tokens"])
-            bboxes = [
-                [x / 1000.0 for x in box] for box in row["bboxes"]
-            ]
+            bboxes = [[x / 1000.0 for x in box] for box in row["bboxes"]]
             yield DocumentInstance(
                 sample_id=str(row["id"]),
                 image=Image(
@@ -141,15 +138,6 @@ class SplitIterator:
             )
 
 
-@DATASET.register(
-    "docile",
-    configs=[
-        DocileConfig(synthetic=False, type="kile"),
-        DocileConfig(synthetic=False, type="lir"),
-        DocileConfig(synthetic=True, type="kile"),
-        DocileConfig(synthetic=True, type="lir"),
-    ],
-)
 class Docile(AtriaDocumentDataset):
     __config_cls__ = DocileConfig
     __requires_access_token__ = True

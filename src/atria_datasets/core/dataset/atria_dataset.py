@@ -15,7 +15,6 @@ Key Features:
     - Flexible storage backends (DeltaLake, sharded files)
     - Runtime and preprocessing transformations
     - Download management for remote datasets
-    - Hub integration for dataset sharing
     - Configurable caching and optimization
 
 Author: Your Name (your.email@example.com)
@@ -72,8 +71,9 @@ class DatasetLoadingMode(str, enum.Enum):
     Enum to represent the streaming mode of the dataset.
 
     Attributes:
-        LOCAL: Dataset is downloaded and stored locally.
-        STREAMING: Dataset is streamed directly from the Atria Hub.
+        in_memory: Cached dataset is loaded fully into memory.
+        local_streaming: Cached dataset is streamed from local storage.
+        online_streaming: Dataset is streamed from remote (S3-compatible) storage.
     """
 
     in_memory = "in_memory"
@@ -169,7 +169,6 @@ class AtriaDataset(
     - Download management for remote datasets
     - Runtime and preprocessing transformations
     - Dataset versioning and configuration management
-    - Hub integration for dataset sharing
 
     Type Parameters:
         T_BaseDataInstance: The type of data instances this dataset contains
@@ -298,11 +297,10 @@ class AtriaDataset(
     # ==================== Class Methods ====================
 
     @classmethod
-    def load_from_registry(
+    def load_by_name(
         cls,
         name: str,
         data_dir: str | None = None,
-        provider: str | None = None,
         preprocess_transform: Callable | None = None,
         access_token: str | None = None,
         dataset_load_mode: DatasetLoadingMode = DatasetLoadingMode.local_streaming,
@@ -315,34 +313,28 @@ class AtriaDataset(
         build_kwargs: dict[str, Any] | None = None,
     ) -> Self:  # noqa: F821
         """
-        Load a dataset from the Atria registry.
+        Load a dataset by name from the dataset catalog (`atria_datasets.catalog.DATASETS`).
 
         Args:
             name: Dataset name, optionally with config (e.g., "dataset/config")
             data_dir: Custom data directory path
-            provider: Registry provider name
             preprocess_transform: Transform function applied during preprocessing
             access_token: Authentication token for private datasets
             overwrite_existing_cached: Whether to overwrite cached data
             allowed_keys: Set of allowed keys to filter data
-            build_kwargs: Additional arguments for dataset construction
+            build_kwargs: Config overrides passed to the dataset constructor
 
         Returns:
             Loaded and configured dataset instance
 
         Raises:
-            AssertionError: If loaded dataset's data model doesn't match expected type
-            ImportError: If registry dependencies are not available
+            KeyError: If the dataset is not in the catalog
         """
-        from atria_datasets import DATASET
+        from atria_datasets.catalog import get_dataset
 
-        logger.info(f"Loading dataset {name} from registry.")
-        build_kwargs = build_kwargs or {}
-        dataset: AtriaDataset[T_BaseDataInstance] = DATASET.load_from_registry(
-            module_name=f"{name}",
-            provider=provider,
-            return_config=False,
-            **build_kwargs,
+        logger.info(f"Loading dataset {name}.")
+        dataset: AtriaDataset[T_BaseDataInstance] = get_dataset(
+            name, **(build_kwargs or {})
         )
         dataset.build(
             data_dir=data_dir,
@@ -426,79 +418,6 @@ class AtriaDataset(
                 if self._split is not None and split != self._split:
                     continue
                 split_iterator.output_transform = runtime_transforms
-
-    def upload_to_hub(
-        self,
-        name: str | None = None,
-        branch: str = "main",
-        is_public: bool = False,
-        overwrite_existing: bool = False,
-    ) -> None:
-        """
-        Upload the dataset to Atria Hub for sharing and collaboration.
-
-        Args:
-            name: Dataset name on the hub (defaults to current dataset name)
-            branch: Branch name (defaults to config-hash format)
-            is_public: Whether to make the dataset publicly accessible
-
-        Raises:
-            ImportError: If atria_hub package is not installed
-            Exception: If upload fails for any reason
-        """
-        try:
-            from atria_hub.hub import AtriaHub
-            from atriax_client.models.data_instance_type import DataInstanceType
-
-            if name is None:
-                name = self.config.dataset_name.replace("_", "-")
-
-            def data_model_to_instance_type(
-                data_model: type[T_BaseDataInstance],
-            ) -> DataInstanceType:
-                """Convert data model class to hub instance type."""
-                if data_model == DocumentInstance:
-                    return DataInstanceType.DOCUMENT_INSTANCE
-                elif data_model == ImageInstance:
-                    return DataInstanceType.IMAGE_INSTANCE
-                else:
-                    raise ValueError(f"Unsupported data model: {data_model}")
-
-            hub = AtriaHub().initialize()
-            dataset = hub.datasets.get_or_create(
-                username=hub.auth.username,
-                name=name,
-                default_branch=branch,
-                description=self.metadata.description,
-                data_instance_type=data_model_to_instance_type(self.data_model),
-                is_public=is_public,
-            )
-
-            logger.info(
-                f"Uploading dataset to hub with name {hub.auth.username}/{name} "
-                f"on branch {branch} and config_name {self.config.config_name}."
-            )
-            hub.datasets.upload_files(
-                dataset=dataset,
-                branch=branch,
-                config_dir=self.config.config_name,
-                dataset_files=self.prepare_dataset_files_from_dir(),
-                overwrite_existing=overwrite_existing,
-            )
-            logger.info(
-                f"Dataset {name} uploaded successfully to branch {branch}. "
-                f"You can load it with name '{hub.auth.username}/{name}' and config_name '{self.config.config_name}'."
-            )
-        except ImportError as e:
-            if e.path.startswith("atria_hub"):
-                raise ImportError(
-                    "The 'atria_hub' package is required to load datasets from the hub. "
-                    "Please install it using 'uv add https://github.com/saifullah3396/atria_hub'."
-                )
-            raise e
-        except Exception as e:
-            logger.error(f"Failed to upload dataset to hub: {e}")
-            raise
 
     def get_max_split_samples(self, split: DatasetSplitType) -> int | None:
         """
@@ -585,41 +504,6 @@ class AtriaDataset(
         logger.info("Saving dataset metadata to %s", metadata_file_path)
         write_yaml_file(metadata_file_path, self.metadata.model_dump())
 
-    def prepare_dataset_files_from_dir(self) -> list[tuple[str, str]]:
-        """
-        Get list of dataset files for upload or transfer operations.
-
-        Args:
-            storage_dir: Storage directory to scan (defaults to current storage directory)
-
-        Returns:
-            List of (local_path, relative_path) tuples for all dataset files
-        """
-
-        from atria_datasets.core.storage.deltalake_storage_manager import (
-            DeltalakeStorageManager,
-        )
-
-        deltalake_storage_manager = DeltalakeStorageManager(
-            storage_dir=self._storage_dir, config_name=self.config.config_name
-        )
-
-        # Collect split files
-        dataset_files = [
-            (
-                str(Path(self._storage_dir) / self.__default_metadata_path__),
-                self.__default_metadata_path__,
-            ),
-            (str(Path(self._storage_dir) / self._config_path), self._config_path),
-        ]
-
-        # get all split files from deltalake storage manager
-        dataset_files.extend(
-            deltalake_storage_manager.prepare_split_files(data_dir=self._data_dir)
-        )
-
-        return dataset_files
-
     # ==================== Private Methods ====================
 
     def _validate_data_dir(self, data_dir: str | Path) -> Path:
@@ -690,7 +574,6 @@ class AtriaDataset(
         ], (
             f"Dataset loading mode {self._dataset_load_mode} is not supported for cached splits. "
             "Use 'in_memory' or 'local_streaming' modes."
-            f"For online streaming, use the 'online_streaming' mode with AtriaHubDataset."
         )
 
         info_saved = False

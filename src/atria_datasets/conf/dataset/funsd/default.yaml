@@ -1,8 +1,0 @@
-_target_: atria_datasets.ser.funsd.FUNSD
-_partial_: false
-dataset_name: funsd
-config_name: default
-max_train_samples: null
-max_validation_samples: null
-max_test_samples: null
-apply_reading_order_correction: true

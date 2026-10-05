@@ -14,8 +14,7 @@ from atria_core.types import (
 )
 from atria_core.types.generic.document_content import DocumentContent
 
-from atria_datasets import DATASET, AtriaDocumentDataset
-from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
+from atria_datasets import AtriaDocumentDataset
 
 from .utilities import read_pascal_voc, read_words_json
 
@@ -103,18 +102,6 @@ class SplitIterator:
         return len(xml_filenames)
 
 
-@DATASET.register(
-    "fintabnet",
-    configs=[
-        AtriaDatasetConfig(config_name="default"),
-        AtriaDatasetConfig(
-            config_name="1k",
-            max_train_samples=1000,
-            max_validation_samples=1000,
-            max_test_samples=1000,
-        ),
-    ],
-)
 class FinTabNet(AtriaDocumentDataset):
     def _download_urls(self) -> list[str]:
         return _URLS

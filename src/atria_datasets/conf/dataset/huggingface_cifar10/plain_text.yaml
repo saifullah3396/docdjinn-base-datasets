@@ -1,9 +1,0 @@
-_target_: atria_datasets.image_classification.cifar10_huggingface.HuggingfaceCifar10
-_partial_: false
-dataset_name: huggingface_cifar10
-config_name: plain_text
-max_train_samples: null
-max_validation_samples: null
-max_test_samples: null
-hf_repo: uoft-cs/cifar10
-hf_config_name: plain_text

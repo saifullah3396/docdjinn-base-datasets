@@ -14,7 +14,6 @@ Dependencies:
     - torch: For dataset sampling utilities.
     - atria_datasets.core.batch_samplers.group_batch_sampler: Base class for group batch samplers.
     - atria_datasets.core.batch_samplers.utilities: Utility functions for creating aspect ratio groups.
-    - atria_registry: For registering the batch sampler.
 
 Author: Your Name (your.email@example.com)
 Date: 2025-04-07
@@ -24,8 +23,6 @@ License: MIT
 
 from typing import TYPE_CHECKING
 
-from atria_registry import BATCH_SAMPLER
-
 from atria_datasets.core.batch_samplers.group_batch_sampler import GroupBatchSampler
 from atria_datasets.core.batch_samplers.utilities import _create_aspect_ratio_groups
 
@@ -33,7 +30,6 @@ if TYPE_CHECKING:
     from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 
-@BATCH_SAMPLER.register("aspect_ratio_group_batch_sampler")
 class AspectRatioGroupBatchSampler(GroupBatchSampler):
     """
     A batch sampler that groups input sample images based on their aspect ratio.

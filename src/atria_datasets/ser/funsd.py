@@ -17,7 +17,6 @@ from atria_core.types import (
     LabelList,
 )
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import (
     AtriaDatasetConfig,
     AtriaDocumentDataset,
@@ -158,7 +157,6 @@ class SplitIterator:
         return len(os.listdir(self.image_dir))
 
 
-@DATASET.register("funsd")
 class FUNSD(AtriaDocumentDataset):
     __config_cls__ = FUNSDConfig
 

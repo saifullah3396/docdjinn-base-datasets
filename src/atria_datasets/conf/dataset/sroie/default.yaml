@@ -1,7 +1,0 @@
-_target_: atria_datasets.ser.sroie.SROIE
-_partial_: false
-dataset_name: sroie
-config_name: default
-max_train_samples: null
-max_validation_samples: null
-max_test_samples: null

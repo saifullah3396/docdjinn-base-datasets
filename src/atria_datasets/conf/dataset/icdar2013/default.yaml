@@ -1,7 +1,0 @@
-_target_: atria_datasets.table_extraction.icdar2013.ICDAR2013
-_partial_: false
-dataset_name: icdar2013
-config_name: default
-max_train_samples: null
-max_validation_samples: null
-max_test_samples: null

@@ -14,7 +14,7 @@ from atria_core.types import (
 )
 from atria_core.types.generic.document_content import DocumentContent
 
-from atria_datasets import DATASET, AtriaDocumentDataset
+from atria_datasets import AtriaDocumentDataset
 
 from .utilities import read_pascal_voc, read_words_json
 
@@ -100,7 +100,6 @@ class SplitIterator:
         return len(xml_filenames)
 
 
-@DATASET.register("icdar2013")
 class ICDAR2013(AtriaDocumentDataset):
     def _download_urls(self) -> list[str]:
         return _URLS

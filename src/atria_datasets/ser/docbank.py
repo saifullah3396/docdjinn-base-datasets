@@ -32,7 +32,6 @@ from atria_core.types import (
 from atria_core.types.generic.annotations import EntityLabelingAnnotation
 from atria_core.types.generic.document_content import DocumentContent
 
-from atria_datasets import DATASET
 from atria_datasets.core.dataset.atria_dataset import (
     AtriaDatasetConfig,
     AtriaDocumentDataset,
@@ -161,7 +160,8 @@ class SplitIterator:
 
         return (
             DocumentContent(
-                words=words, word_bboxes=BoundingBoxList(value=word_bboxes, normalized=False)
+                words=words,
+                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=False),
             ),
             EntityLabelingAnnotation(
                 word_labels=LabelList.from_list(
@@ -204,23 +204,6 @@ class SplitIterator:
         return len(self.split_data["images"])
 
 
-@DATASET.register(
-    "docbank",
-    configs=[
-        DocBankConfig(
-            config_name="1k",
-            max_train_samples=1000,
-            max_validation_samples=1000,
-            max_test_samples=1000,
-        ),
-        DocBankConfig(
-            config_name="0.1k",
-            max_train_samples=100,
-            max_validation_samples=100,
-            max_test_samples=100,
-        ),
-    ],
-)
 class DocBankLER(AtriaDocumentDataset):
     __config_cls__ = DocBankConfig
 
