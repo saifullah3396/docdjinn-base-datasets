@@ -94,7 +94,5 @@ __getattr__, __dir__, __all__ = lazy.attach(
         ],
         "core.storage.utilities": ["FileStorageType"],
         "catalog": ["DATASETS", "get_dataset"],
-        "image_classification.cifar10": ["Cifar10"],
-        "image_classification.cifar10_huggingface": ["HuggingfaceCifar10"],
     },
 )

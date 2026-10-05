@@ -1,95 +1,5 @@
 import editdistance
-import pandas as pd
 import textdistance as td
-
-
-def _get_line_bboxes(
-    bboxes: list[tuple[int, int, int, int]],
-) -> list[tuple[int, int, int, int]]:
-    x = [bboxes[i][j] for i in range(len(bboxes)) for j in range(0, len(bboxes[i]), 2)]
-    y = [bboxes[i][j] for i in range(len(bboxes)) for j in range(1, len(bboxes[i]), 2)]
-
-    x0, y0, x1, y1 = min(x), min(y), max(x), max(y)
-
-    assert x1 >= x0 and y1 >= y0
-    bbox = [[x0, y0, x1, y1] for _ in range(len(bboxes))]
-    return bbox
-
-
-def _normalize_bbox(
-    bbox: tuple[int, int, int, int], size: tuple[int, int]
-) -> list[int]:
-    return [
-        int(1000 * bbox[0] / size[0]),
-        int(1000 * bbox[1] / size[1]),
-        int(1000 * bbox[2] / size[0]),
-        int(1000 * bbox[3] / size[1]),
-    ]
-
-
-def _get_sorted_indices(df: pd.DataFrame) -> pd.DataFrame:
-    # Function to determine if two words are on the same line
-    def is_same_line(word1, word2):
-        return abs(word1["cy"] - word2["cy"]) <= word1["bbox_threshold"]
-
-    # Sort by y0 (top to bottom) and then by x0 (left to right)
-    df = df.sort_values(by=["cy", "cx"]).reset_index(drop=True)
-
-    # Group words into lines
-    lines = []
-    current_line = []
-    for i in range(len(df)):
-        if i == 0:
-            current_line.append(df.iloc[i])
-        else:
-            prev_word = df.iloc[i - 1]
-            current_word = df.iloc[i]
-            if is_same_line(prev_word, current_word):
-                current_line.append(current_word)
-            else:
-                lines.append(current_line)
-                current_line = [current_word]
-
-    # Add the last line
-    if current_line:
-        lines.append(current_line)
-
-    # Sort each line by x0 (left to right)
-    sorted_lines = [pd.DataFrame(line).sort_values(by="cx") for line in lines]
-
-    # Combine sorted lines into a single DataFrame
-    sorted_df = pd.concat(sorted_lines).reset_index(drop=True)
-
-    # Get the sorted indices
-    sorted_indices = [int(x) for x in sorted_df["index"].tolist()]
-
-    return sorted_indices
-
-
-def _sorted_indices_in_reading_order(
-    word_bboxes: list[tuple[int, int, int, int]], bbox_threshold: float = 0.4
-) -> dict:
-    word_coords = []
-    for idx, word_bbox in enumerate(word_bboxes):
-        word_coords.append(
-            {
-                "index": idx,
-                "cx": word_bbox[0],
-                "cy": word_bbox[1],
-                "bbox_threshold": (word_bbox[3] - word_bbox[1]) * bbox_threshold,
-            }
-        )
-    df = pd.DataFrame(word_coords)
-    return _get_sorted_indices(df)
-
-
-def bbox_string(box, width, length):
-    return [
-        int(1000 * (box[0] / width)),
-        int(1000 * (box[1] / length)),
-        int(1000 * (box[2] / width)),
-        int(1000 * (box[3] / length)),
-    ]
 
 
 def clean_text(text):
@@ -261,30 +171,6 @@ def get_answer_indices(words, answer):
         return start_index, end_index, extracted_answer
 
 
-def anls_metric_str(
-    predictions: list[list[str]], gold_labels: list[list[str]], tau=0.5, rank=0
-):
-    res = []
-    """
-    predictions: List[List[int]]
-    gold_labels: List[List[List[int]]]: each instances probably have multiple gold labels.
-    """
-    for i, (preds, golds) in enumerate(zip(predictions, gold_labels)):
-        max_s = 0
-        for pred in preds:
-            for gold in golds:
-                dis = td.levenshtein.distance(pred.lower(), gold.lower())
-                max_len = max(len(pred), len(gold))
-                if max_len == 0:
-                    s = 0
-                else:
-                    nl = dis / max_len
-                    s = 1 - nl if nl < tau else 0
-                max_s = max(s, max_s)
-        res.append(max_s)
-    return res, sum(res) / len(res)
-
-
 from sacremoses import MosesDetokenizer
 
 
@@ -370,44 +256,6 @@ def better_subfinder(words_list, answer_query, try_hard=True):
 
     # fail
     return None, 0, 0
-
-
-def locate_encoded_answer(encoding, batch_index, word_idx_start, word_idx_end):
-    sequence_ids = encoding.sequence_ids(batch_index)
-    # Start token index of the current span in the text.
-    token_start_index = 0
-    # skip <pad> tokens
-    while sequence_ids[token_start_index] != 1:
-        token_start_index += 1
-
-    # End token index of the current span in the text.
-    token_end_index = len(encoding.input_ids[batch_index]) - 1
-    # skip <pad> tokens
-    while sequence_ids[token_end_index] != 1:
-        token_end_index -= 1
-
-    word_ids = encoding.word_ids(batch_index)[token_start_index : token_end_index + 1]
-    found_start = False
-    found_end = False
-    for id in word_ids:
-        if id == word_idx_start:
-            found_start = True
-            break
-        else:
-            token_start_index += 1
-
-    for id in word_ids[::-1]:
-        if id == word_idx_end:
-            found_end = True
-            break
-        else:
-            token_end_index -= 1
-
-    if not found_start or not found_end:
-        return -1, -1
-
-    # success
-    return token_start_index, token_end_index
 
 
 def extract_start_end_index_v1(current_answers, words):
